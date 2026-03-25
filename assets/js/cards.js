@@ -1,4 +1,8 @@
-const DATA_PATH = "data/新的国际组织全量分类表_新版_enriched_20260325_141013.csv";
+const CSV_PATHS = [
+  "新的国际组织全量分类表_新版_enriched_20260325_141013.csv",
+  "data/新的国际组织全量分类表_新版_enriched_20260325_141013.csv",
+];
+
 const root = document.getElementById("allCards");
 
 function getField(row, keys) {
@@ -39,14 +43,32 @@ function card(row) {
   return d;
 }
 
-Papa.parse(DATA_PATH, {
-  download: true,
-  header: true,
-  skipEmptyLines: true,
-  complete: (res) => {
-    res.data.forEach((row) => root.appendChild(card(row)));
-  },
-  error: () => {
-    root.innerHTML = "<p>数据文件加载失败。请检查 data 目录下 CSV 文件是否存在。</p>";
-  },
-});
+function parseCsv(path) {
+  return new Promise((resolve, reject) => {
+    Papa.parse(path, {
+      download: true,
+      header: true,
+      skipEmptyLines: true,
+      complete: resolve,
+      error: reject,
+    });
+  });
+}
+
+async function loadData() {
+  for (const path of CSV_PATHS) {
+    try {
+      const res = await parseCsv(path);
+      if (res?.data?.length) {
+        res.data.forEach((row) => root.appendChild(card(row)));
+        return;
+      }
+    } catch (_) {
+      // try next csv path
+    }
+  }
+
+  root.innerHTML = "<p>数据文件加载失败。请检查仓库根目录或 data 目录下 CSV 文件是否存在。</p>";
+}
+
+loadData();

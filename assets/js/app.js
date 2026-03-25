@@ -1,4 +1,8 @@
-const DATA_PATH = "data/新的国际组织全量分类表_新版_enriched_20260325_141013.csv";
+const CSV_PATHS = [
+  "新的国际组织全量分类表_新版_enriched_20260325_141013.csv",
+  "data/新的国际组织全量分类表_新版_enriched_20260325_141013.csv",
+];
+
 const map = echarts.init(document.getElementById("map"));
 
 const ui = {
@@ -180,17 +184,35 @@ function bindEvents() {
   window.addEventListener("resize", () => map.resize());
 }
 
-Papa.parse(DATA_PATH, {
-  download: true,
-  header: true,
-  skipEmptyLines: true,
-  complete: (res) => {
-    records = res.data.map(normalize).filter(x => x.cn || x.en);
-    updateFilterOptions();
-    bindEvents();
-    applyFilters();
-  },
-  error: () => {
-    alert("数据文件加载失败。请确认 data 目录下 CSV 文件存在且编码为 UTF-8。");
-  },
-});
+function parseCsv(path) {
+  return new Promise((resolve, reject) => {
+    Papa.parse(path, {
+      download: true,
+      header: true,
+      skipEmptyLines: true,
+      complete: resolve,
+      error: reject,
+    });
+  });
+}
+
+async function loadData() {
+  for (const path of CSV_PATHS) {
+    try {
+      const res = await parseCsv(path);
+      if (res?.data?.length) {
+        records = res.data.map(normalize).filter(x => x.cn || x.en);
+        updateFilterOptions();
+        bindEvents();
+        applyFilters();
+        return;
+      }
+    } catch (_) {
+      // try next csv path
+    }
+  }
+
+  alert("数据文件加载失败。请确认仓库根目录或 data 目录中存在 CSV 文件，且编码为 UTF-8。");
+}
+
+loadData();
