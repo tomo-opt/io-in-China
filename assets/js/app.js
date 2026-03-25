@@ -24,12 +24,19 @@ const ui = {
   drawer: document.getElementById("drawer"),
   drawerTitle: document.getElementById("drawerTitle"),
   cityLayer: document.getElementById("cityLayer"), // 图片地图模式用
+  chinaMapImg: document.getElementById("chinaMapImg"), // 图片底图（用于取像素坐标）
 };
 
 let records = [];
 let filtered = [];
 
-/** 图片底图模式：归一化锚点 */
+/** 阈值配置 */
+const DOT_MIN = 8;
+const DOT_MAX = 18;
+const LABEL_MIN = 10;
+const LABEL_MAX = 14;
+
+/** 图片底图模式：归一化锚点（0~1） */
 const CITY_ANCHORS = {
   "北京市": { x: 0.63, y: 0.27 },
   "上海市": { x: 0.72, y: 0.46 },
@@ -49,7 +56,7 @@ const CITY_ANCHORS = {
   "苏州市": { x: 0.71, y: 0.46 }
 };
 
-/** ECharts模式：经纬度点位（避免 cityCoord 未定义） */
+/** ECharts模式：经纬度点位 */
 const CITY_COORD = {
   "北京市": [116.4074, 39.9042],
   "上海市": [121.4737, 31.2304],
@@ -68,6 +75,14 @@ const CITY_COORD = {
   "宁波市": [121.5503, 29.8746],
   "苏州市": [120.6196, 31.299]
 };
+
+function clamp(v, min, max) {
+  return Math.max(min, Math.min(max, v));
+}
+
+function countToDotSize(count) {
+  return clamp(6 + Math.sqrt(Math.max(1, count)) * 1.8, DOT_MIN, DOT_MAX);
+}
 
 function setMapStatus(message) {
   const el = document.getElementById("mapStatus");
@@ -107,7 +122,7 @@ function normalize(row) {
 function normalizeCityName(location = "") {
   const t = String(location).trim();
 
-  // 优先抓 “xx市”
+  // 优先抓“xx市”
   const m = t.match(/([^\s省自治区特别行政区]+市)/);
   if (m) return m[1];
 
@@ -192,6 +207,7 @@ function renderSearchResults(list) {
   list.forEach((item) => ui.searchResults.appendChild(renderCard(item)));
 }
 
+/** 图片底图点位：文本改为 城市名(机构数)，且点大小有阈值 */
 function renderCityDots(grouped) {
   if (!ui.cityLayer) return;
   ui.cityLayer.innerHTML = "";
@@ -200,19 +216,25 @@ function renderCityDots(grouped) {
     const anchor = CITY_ANCHORS[city];
     if (!anchor) return; // 无锚点先跳过
 
+    const count = rows.length;
+    const dotSize = countToDotSize(count);
+
     const dot = document.createElement("button");
     dot.type = "button";
     dot.className = "city-dot";
     dot.style.left = `${anchor.x * 100}%`;
     dot.style.top = `${anchor.y * 100}%`;
-    dot.title = `${city}（${rows.length}）`;
-    dot.innerHTML = `<span class="count">${rows.length}</span>`;
+    dot.style.width = `${dotSize}px`;
+    dot.style.height = `${dotSize}px`;
+    dot.title = `${city}（${count}个机构）`;
+    dot.innerHTML = `<span class="count">${city}(${count})</span>`;
     dot.addEventListener("click", () => openDrawer(city, rows));
 
     ui.cityLayer.appendChild(dot);
   });
 }
 
+/** 地图底图加载（ECharts） */
 async function ensureChinaMap() {
   if (typeof echarts === "undefined") return false;
   if (echarts.getMap("china")) return true;
@@ -232,6 +254,9 @@ async function ensureChinaMap() {
   return false;
 }
 
+let currentZoom = 1;
+
+/** ECharts散点：文本改为 城市名(机构数) + 缩放阈值 */
 function renderEchartsMap(grouped) {
   if (!mapReady || !map) return;
 
@@ -251,6 +276,7 @@ function renderEchartsMap(grouped) {
     geo: {
       map: "china",
       roam: true,
+      scaleLimit: { min: 1, max: 4 }, // 缩放阈值范围
       label: { show: false },
       itemStyle: { areaColor: "#dce8f7", borderColor: "#8ea9cf" },
       emphasis: { itemStyle: { areaColor: "#c6daf6" } },
@@ -259,9 +285,28 @@ function renderEchartsMap(grouped) {
       {
         type: "scatter",
         coordinateSystem: "geo",
-        symbolSize: (val) => Math.min(28, 8 + val[2] * 2),
-        itemStyle: { color: "#ff5d5d", shadowBlur: 10, shadowColor: "rgba(0,0,0,.2)" },
-        emphasis: { itemStyle: { color: "#ff2f2f" } },
+        symbolSize: (val) => {
+          const n = val?.[2] || 1;
+          // 基础大小 + 按 zoom 反向修正，避免过大过小
+          const raw = countToDotSize(n) / Math.sqrt(currentZoom || 1);
+          return clamp(raw, DOT_MIN, DOT_MAX);
+        },
+        label: {
+          show: true,
+          position: "right",
+          distance: 6,
+          formatter: (p) => `${p.name}(${p.value?.[2] || 0})`, // 城市名(机构数量)
+          color: "#333",
+          fontSize: clamp(12 / Math.sqrt(currentZoom || 1), LABEL_MIN, LABEL_MAX),
+          backgroundColor: "rgba(255,255,255,0.88)",
+          borderRadius: 10,
+          padding: [2, 6],
+        },
+        itemStyle: { color: "#ff5d5d", shadowBlur: 8, shadowColor: "rgba(0,0,0,.18)" },
+        emphasis: {
+          itemStyle: { color: "#ff2f2f" },
+          label: { show: true },
+        },
         data: scatterData,
       },
     ],
@@ -317,6 +362,30 @@ function applyFilters() {
   renderSearchResults(q ? filtered.slice(0, 20) : []);
 }
 
+function bindAnchorCaptureTool() {
+  // 仅图片底图模式启用：按住 Alt 点击地图，打印像素与归一化坐标
+  if (!ui.chinaMapImg) return;
+  ui.chinaMapImg.addEventListener("click", (e) => {
+    if (!e.altKey) return; // 防误触：按住 Alt 再点
+    const rect = ui.chinaMapImg.getBoundingClientRect();
+    const px = e.clientX - rect.left;
+    const py = e.clientY - rect.top;
+    const nx = px / rect.width;
+    const ny = py / rect.height;
+
+    const info = `xPixel=${px.toFixed(1)}, yPixel=${py.toFixed(1)}, xNorm=${nx.toFixed(4)}, yNorm=${ny.toFixed(4)}`;
+    console.log("[AnchorCapture]", info);
+    try {
+      navigator.clipboard.writeText(info);
+      setMapStatus(`已复制坐标：${info}（可直接粘贴到 CITY_ANCHORS）`);
+      setTimeout(clearMapStatus, 2200);
+    } catch {
+      setMapStatus(`坐标：${info}`);
+      setTimeout(clearMapStatus, 2200);
+    }
+  });
+}
+
 function bindEvents() {
   [ui.searchInput, ui.attrFilter, ui.categoryFilter, ui.yearFilter, ui.cityFilter].forEach((el) =>
     el.addEventListener("input", applyFilters)
@@ -330,8 +399,9 @@ function bindEvents() {
 
   document.getElementById("drawerClose").addEventListener("click", () => ui.drawer.classList.remove("open"));
 
-  // 仅ECharts模式绑定地图点击
+  // ECharts模式点击
   if (map) {
+    map.off("click");
     map.on("click", (p) => {
       if (p.seriesType !== "scatter") return;
       const city = p.name;
@@ -339,8 +409,18 @@ function bindEvents() {
       if (list.length) openDrawer(city, list);
     });
 
+    // 缩放时刷新阈值表现
+    map.off("georoam");
+    map.on("georoam", () => {
+      const opt = map.getOption();
+      currentZoom = opt?.geo?.[0]?.zoom || 1;
+      applyFilters();
+    });
+
     window.addEventListener("resize", () => map.resize());
   }
+
+  bindAnchorCaptureTool();
 }
 
 function parseCsv(path) {
