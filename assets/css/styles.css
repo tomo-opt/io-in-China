@@ -103,3 +103,15 @@ body { margin: 0; font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif; co
   color:#223;
   line-height:18px;
 }
+body.calibration-mode .top-nav,
+body.calibration-mode .search-panel,
+body.calibration-mode .map-note,
+body.calibration-mode .drawer {
+  opacity: 0.08;
+  pointer-events: none;
+}
+
+body.calibration-mode #map,
+body.calibration-mode .map-image-stage {
+  cursor: crosshair;
+}
