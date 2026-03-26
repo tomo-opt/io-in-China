@@ -256,7 +256,125 @@ async function ensureChinaMap() {
 
 let currentZoom = 1;
 
-/** ECharts散点：文本改为 城市名(机构数) + 缩放阈值 */
+/* ===============================
+   图片地图缩放 + 拖拽系统（新增）
+================================ */
+
+const imageView = {
+  scale: 1,
+  minScale: 1,
+  maxScale: 3.5,
+  x: 0,
+  y: 0,
+  dragging: false,
+  startX: 0,
+  startY: 0,
+};
+
+function getImageStage() {
+  return document.getElementById("mapImageStage");
+}
+
+function applyImageTransform() {
+  if (!ui.chinaMapImg || !ui.cityLayer) return;
+
+  const transform = `translate(${imageView.x}px, ${imageView.y}px) scale(${imageView.scale})`;
+
+  ui.chinaMapImg.style.transform = transform;
+  ui.cityLayer.style.transform = transform;
+}
+
+function resetImageView() {
+  imageView.scale = 1;
+  imageView.x = 0;
+  imageView.y = 0;
+  applyImageTransform();
+}
+
+function zoomImageAt(clientX, clientY, nextScale) {
+  const stage = getImageStage();
+  if (!stage) return;
+
+  const rect = stage.getBoundingClientRect();
+  const prevScale = imageView.scale;
+  const scale = clamp(nextScale, imageView.minScale, imageView.maxScale);
+
+  if (scale === prevScale) return;
+
+  const px = clientX - rect.left;
+  const py = clientY - rect.top;
+
+  const worldX = (px - imageView.x) / prevScale;
+  const worldY = (py - imageView.y) / prevScale;
+
+  imageView.scale = scale;
+  imageView.x = px - worldX * scale;
+  imageView.y = py - worldY * scale;
+
+  applyImageTransform();
+}
+
+function bindImageMapInteractions() {
+  const stage = getImageStage();
+  if (!stage || window.__imageMapBound) return;
+
+  window.__imageMapBound = true;
+
+  applyImageTransform();
+
+  // 滚轮缩放
+  stage.addEventListener(
+    "wheel",
+    (e) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.18 : 0.18;
+      zoomImageAt(e.clientX, e.clientY, imageView.scale + delta);
+    },
+    { passive: false }
+  );
+
+  // 拖拽
+  stage.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+
+    imageView.dragging = true;
+    imageView.startX = e.clientX - imageView.x;
+    imageView.startY = e.clientY - imageView.y;
+
+    stage.classList.add("is-dragging");
+  });
+
+  window.addEventListener("pointermove", (e) => {
+    if (!imageView.dragging) return;
+
+    imageView.x = e.clientX - imageView.startX;
+    imageView.y = e.clientY - imageView.startY;
+
+    applyImageTransform();
+  });
+
+  window.addEventListener("pointerup", () => {
+    imageView.dragging = false;
+    stage.classList.remove("is-dragging");
+  });
+
+  // 双击缩放
+  stage.addEventListener("dblclick", (e) => {
+    e.preventDefault();
+
+    if (imageView.scale > 1.05) {
+      resetImageView();
+    } else {
+      zoomImageAt(e.clientX, e.clientY, 1.8);
+    }
+  });
+
+  // resize 保持状态
+  window.addEventListener("resize", () => {
+    applyImageTransform();
+  });
+}
+
 function renderEchartsMap(grouped) {
   if (!mapReady || !map) return;
 
@@ -276,10 +394,16 @@ function renderEchartsMap(grouped) {
     geo: {
       map: "china",
       roam: true,
-      scaleLimit: { min: 1, max: 4 }, // 缩放阈值范围
+      zoom: currentZoom,
+      scaleLimit: { min: 1, max: 4 },
       label: { show: false },
-      itemStyle: { areaColor: "#dce8f7", borderColor: "#8ea9cf" },
-      emphasis: { itemStyle: { areaColor: "#c6daf6" } },
+      itemStyle: {
+        areaColor: "#dce8f7",
+        borderColor: "#8ea9cf",
+      },
+      emphasis: {
+        itemStyle: { areaColor: "#c6daf6" },
+      },
     },
     series: [
       {
@@ -287,7 +411,6 @@ function renderEchartsMap(grouped) {
         coordinateSystem: "geo",
         symbolSize: (val) => {
           const n = val?.[2] || 1;
-          // 基础大小 + 按 zoom 反向修正，避免过大过小
           const raw = countToDotSize(n) / Math.sqrt(currentZoom || 1);
           return clamp(raw, DOT_MIN, DOT_MAX);
         },
@@ -295,14 +418,18 @@ function renderEchartsMap(grouped) {
           show: true,
           position: "right",
           distance: 6,
-          formatter: (p) => `${p.name}(${p.value?.[2] || 0})`, // 城市名(机构数量)
+          formatter: (p) => `${p.name}(${p.value?.[2] || 0})`,
           color: "#333",
           fontSize: clamp(12 / Math.sqrt(currentZoom || 1), LABEL_MIN, LABEL_MAX),
           backgroundColor: "rgba(255,255,255,0.88)",
           borderRadius: 10,
           padding: [2, 6],
         },
-        itemStyle: { color: "#ff5d5d", shadowBlur: 8, shadowColor: "rgba(0,0,0,.18)" },
+        itemStyle: {
+          color: "#ff5d5d",
+          shadowBlur: 8,
+          shadowColor: "rgba(0,0,0,.18)",
+        },
         emphasis: {
           itemStyle: { color: "#ff2f2f" },
           label: { show: true },
@@ -425,7 +552,6 @@ function parseCsv(path) {
 }
 
 function bindEvents() {
-  // 防止重复绑定（非常重要）
   if (window.__ioMapEventsBound) return;
   window.__ioMapEventsBound = true;
 
@@ -437,13 +563,13 @@ function bindEvents() {
     ui.searchInput.value = "";
     [ui.attrFilter, ui.categoryFilter, ui.yearFilter, ui.cityFilter].forEach((sel) => (sel.value = ""));
     applyFilters();
+    resetImageView();
   });
 
   document.getElementById("drawerClose").addEventListener("click", () => {
     ui.drawer.classList.remove("open");
   });
 
-  // 仅 ECharts 模式绑定地图交互
   if (map) {
     map.off("click");
     map.on("click", (p) => {
@@ -457,18 +583,18 @@ function bindEvents() {
     map.on("georoam", () => {
       const opt = map.getOption();
       currentZoom = opt?.geo?.[0]?.zoom || 1;
-      applyFilters();
+      renderEchartsMap(groupByCity(filtered));
     });
 
     window.addEventListener("resize", () => map.resize());
   }
 
-  // Alt 取点工具（你已有的话会使用最新逻辑）
+  bindImageMapInteractions();
+
   if (typeof bindAnchorCaptureTool === "function") {
     bindAnchorCaptureTool();
   }
 
-  // C 键切换“校准模式”
   if (!window.__calibrationHotkeyBound) {
     document.addEventListener("keydown", (e) => {
       if (e.key && e.key.toLowerCase() === "c") {
