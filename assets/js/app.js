@@ -41,6 +41,81 @@ const CITY_ANCHORS = {
   "安徽省合肥市": { x: 0.6680, y: 0.6168 },
   "北京市": { x: 0.6440, y: 0.4069 },
   "福建省福州市": { x: 0.7098, y: 0.7649 },
+  "福建省泉州市":	{ x: 0.7004, y: 0.7969 },
+  "福建省厦门市":	{ x: 0.6932, y: 0.8100 },
+  "福建省漳州市":	{ x: 0.6848, y: 0.8096 },
+  "甘肃省酒泉市":	{ x: 0.3932, y: 0.4039 },
+  "甘肃省兰州市":	{ x: 0.4650, y: 0.5116 },
+  "甘肃省天水市":	{ x: 0.4924, y: 0.5506 },
+  "广东省东莞市":	{ x: 0.6204, y: 0.8527 },
+  "广东省广州市":	{ x: 0.6117, y: 0.8497 },
+  "广东省江门市":	{ x: 0.6067, y: 0.8641 },
+  "广东省清远市":	{ x: 0.6077, y: 0.8361 },
+  "广东省汕头市":	{ x: 0.6701, y: 0.8392 },
+  "广东省深圳市":	{ x: 0.6257, y: 0.8641 },
+  "广东省肇庆市":	{ x: 0.5980, y: 0.8532 },
+  "广东省中山市":	{ x: 0.6120, y: 0.8646 },
+  "广东省珠海市":	{ x: 0.6167, y: 0.8707 },
+  "广西壮族自治区桂林市":	{ x: 0.5603, y: 0.7973 },
+  "广西壮族自治区柳州市":	{ x: 0.5454, y: 0.8223 },
+  "广西壮族自治区南宁市":	{ x: 0.5277, y: 0.8595 },
+  "贵州省贵阳市":	{ x: 0.5017, y: 0.7623 },
+  "海南省海口市":	{ x: 0.5601, y: 0.9344 },
+  "河北省保定市":	{ x: 0.6318, y: 0.4349 },
+  "河北省邯郸市":	{ x: 0.6218, y: 0.4963 },
+  "河北省廊坊市":	{ x: 0.6483, y: 0.4176 },
+  "河南省洛阳市":	{ x: 0.5921, y: 0.5495 },
+  "河南省郑州市":	{ x: 0.6096, y: 0.5467 },
+  "河南省周口市":	{ x: 0.6253, y: 0.5768 },
+  "黑龙江省哈尔滨市":	{ x: 0.7659, y: 0.2305 },
+  "黑龙江省齐齐哈尔市":	{ x: 0.7289, y: 0.1980 },
+  "湖北省武汉市":	{ x: 0.6211, y: 0.6544 },
+  "湖南省长沙市":	{ x: 0.6014, y: 0.7190 },
+  "吉林省珲春市":	{ x: 0.8259, y: 0.2940 },
+  "吉林省吉林市":	{ x: 0.7719, y: 0.2815 },
+  "吉林省图们市":	{ x: 0.8176, y: 0.2927 },
+  "吉林省长春市":	{ x: 0.7554, y: 0.2836 },
+  "江苏省连云港市":	{ x: 0.6923, y: 0.5425 },
+  "江苏省南京市":	{ x: 0.6917, y: 0.6093 },
+  "江苏省苏州市":	{ x: 0.7212, y: 0.6251 },
+  "江苏省无锡市":	{ x: 0.7144, y: 0.6214 },
+  "江苏省徐州市":	{ x: 0.6625, y: 0.5553 },
+  "江苏省扬州市":	{ x: 0.7000, y: 0.5998 },
+  "江苏省镇江市":	{ x: 0.7011, y: 0.6077 },
+  "江西省南昌市":	{ x: 0.6480, y: 0.7030 },
+  "辽宁省大连市":	{ x: 0.7187, y: 0.4236 },
+  "辽宁省丹东市":	{ x: 0.7526, y: 0.3871 },
+  "辽宁省沈阳市":	{ x: 0.7361, y: 0.3430 },
+  "内蒙古自治区呼和浩特市":	{ x: 0.5775, y: 0.3867 },
+  "内蒙古自治区通辽市":	{ x: 0.7159, y: 0.2984 },
+  "内蒙古自治区锡林浩特市":	{ x: 0.6336, y: 0.3009 },
+  "宁夏回族自治区银川市":	{ x: 0.5022, y: 0.4497 },
+  "青海省西宁市":	{ x: 0.4344, y: 0.4919 },
+  "山东省济南市":	{ x: 0.6552, y: 0.4921 },
+  "山东省青岛市":	{ x: 0.7064, y: 0.5016 },
+  "山东省威海市":	{ x: 0.7281, y: 0.4588 },
+  "山东省潍坊市":	{ x: 0.6856, y: 0.4875 },
+  "山东省烟台市":	{ x: 0.7209, y: 0.4657 },
+  "山西省太原市":	{ x: 0.5922, y: 0.4649 },
+  "陕西省西安市":	{ x: 0.5379, y: 0.5613 },
+  "上海市":	{ x: 0.7326, y: 0.6247 },
+  "四川省成都市":	{ x: 0.4615, y: 0.6509 },
+  "四川省乐山市":	{ x: 0.4562, y: 0.6791 },
+  "四川省雅安市":	{ x: 0.4454, y: 0.6674 },
+  "四川省自贡市":	{ x: 0.4722, y: 0.6873 },
+  "天津市":	{ x: 0.6552, y: 0.4283 },
+  "西藏自治区拉萨市":	{ x: 0.2565, y: 0.6431 },
+  "新疆维吾尔自治区乌鲁木齐市":	{ x: 0.2599, y: 0.2624 },
+  "云南省昆明市":	{ x: 0.4349, y: 0.8032 },
+  "云南省丽江市":	{ x: 0.3954, y: 0.7442 },
+  "浙江省杭州市":	{ x: 0.7132, y: 0.6531 },
+  "浙江省湖州市":	{ x: 0.7132, y: 0.6398 },
+  "浙江省嘉兴市":	{ x: 0.7238, y: 0.6385 },
+  "浙江省丽水市":	{ x: 0.7135, y: 0.7004 },
+  "浙江省宁波市":	{ x: 0.7371, y: 0.6610 },
+  "浙江省绍兴市":	{ x: 0.7211, y: 0.6589 },
+  "浙江省义乌市":	{ x: 0.7147, y: 0.6788 },
+  "重庆市":	{ x: 0.5002, y: 0.6836 },
 };
 
 /** ECharts模式：经纬度点位 */
@@ -117,21 +192,81 @@ function normalizeCityName(location = "") {
   if (t.includes("合肥")) return "安徽省合肥市";
   if (t.includes("北京")) return "北京市";
   if (t.includes("福州")) return "福建省福州市";
+  if (t.includes("泉州")) return "福建省泉州市";
+  if (t.includes("厦门")) return "福建省厦门市";
+  if (t.includes("漳州")) return "福建省漳州市";
+  if (t.includes("酒泉")) return "甘肃省酒泉市";
+  if (t.includes("兰州")) return "甘肃省兰州市";
+  if (t.includes("天水")) return "甘肃省天水市";
+  if (t.includes("东莞")) return "广东省东莞市";
+  if (t.includes("广州")) return "广东省广州市";
+  if (t.includes("江门")) return "广东省江门市";
+  if (t.includes("清远")) return "广东省清远市";
+  if (t.includes("汕头")) return "广东省汕头市";
+  if (t.includes("深圳")) return "广东省深圳市";
+  if (t.includes("肇庆")) return "广东省肇庆市";
+  if (t.includes("中山")) return "广东省中山市";
+  if (t.includes("珠海")) return "广东省珠海市";
+  if (t.includes("桂林")) return "广西壮族自治区桂林市";
+  if (t.includes("柳州")) return "广西壮族自治区柳州市";
+  if (t.includes("南宁")) return "广西壮族自治区南宁市";
+  if (t.includes("贵阳")) return "贵州省贵阳市";
+  if (t.includes("海口")) return "海南省海口市";
+  if (t.includes("保定")) return "河北省保定市";
+  if (t.includes("邯郸")) return "河北省邯郸市";
+  if (t.includes("廊坊")) return "河北省廊坊市";
+  if (t.includes("洛阳")) return "河南省洛阳市";
+  if (t.includes("郑州")) return "河南省郑州市";
+  if (t.includes("周口")) return "河南省周口市";
+  if (t.includes("哈尔滨")) return "黑龙江省哈尔滨市";
+  if (t.includes("齐齐哈尔")) return "黑龙江省齐齐哈尔市";
+  if (t.includes("武汉")) return "湖北省武汉市";
+  if (t.includes("长沙")) return "湖南省长沙市";
+  if (t.includes("珲春")) return "吉林省珲春市";
+  if (t.includes("吉林吉林")) return "吉林省吉林市";
+  if (t.includes("图们")) return "吉林省图们市";
+  if (t.includes("长春")) return "吉林省长春市";
+  if (t.includes("连云港")) return "江苏省连云港市";
+  if (t.includes("南京")) return "江苏省南京市";
+  if (t.includes("苏州")) return "江苏省苏州市";
+  if (t.includes("无锡")) return "江苏省无锡市";
+  if (t.includes("徐州")) return "江苏省徐州市";
+  if (t.includes("扬州")) return "江苏省扬州市";
+  if (t.includes("镇江")) return "江苏省镇江市";
+  if (t.includes("南昌")) return "江西省南昌市";
+  if (t.includes("大连")) return "辽宁省大连市";
+  if (t.includes("丹东")) return "辽宁省丹东市";
+  if (t.includes("沈阳")) return "辽宁省沈阳市";
+  if (t.includes("呼和浩特")) return "内蒙古自治区呼和浩特市";
+  if (t.includes("通辽")) return "内蒙古自治区通辽市";
+  if (t.includes("锡林浩特")) return "内蒙古自治区锡林浩特市";
+  if (t.includes("银川")) return "宁夏回族自治区银川市";
+  if (t.includes("西宁")) return "青海省西宁市";
+  if (t.includes("济南")) return "山东省济南市";
+  if (t.includes("青岛")) return "山东省青岛市";
+  if (t.includes("威海")) return "山东省威海市";
+  if (t.includes("潍坊")) return "山东省潍坊市";
+  if (t.includes("烟台")) return "山东省烟台市";
+  if (t.includes("太原")) return "山西省太原市";
+  if (t.includes("西安")) return "陕西省西安市";
   if (t.includes("上海")) return "上海市";
-  if (t.includes("广州")) return "广州市";
-  if (t.includes("深圳")) return "深圳市";
-  if (t.includes("杭州")) return "杭州市";
-  if (t.includes("南京")) return "南京市";
-  if (t.includes("武汉")) return "武汉市";
-  if (t.includes("成都")) return "成都市";
-  if (t.includes("重庆")) return "重庆市";
-  if (t.includes("西安")) return "西安市";
+  if (t.includes("成都")) return "四川省成都市";
+  if (t.includes("乐山")) return "四川省乐山市";
+  if (t.includes("雅安")) return "四川省雅安市";
+  if (t.includes("自贡")) return "四川省自贡市";
   if (t.includes("天津")) return "天津市";
-  if (t.includes("青岛")) return "青岛市";
-  if (t.includes("厦门")) return "厦门市";
-  if (t.includes("昆明")) return "昆明市";
-  if (t.includes("宁波")) return "宁波市";
-  if (t.includes("苏州")) return "苏州市";
+  if (t.includes("拉萨")) return "西藏自治区拉萨市";
+  if (t.includes("乌鲁木齐")) return "新疆维吾尔自治区乌鲁木齐市";
+  if (t.includes("昆明")) return "云南省昆明市";
+  if (t.includes("丽江")) return "云南省丽江市";
+  if (t.includes("杭州")) return "浙江省杭州市";
+  if (t.includes("湖州")) return "浙江省湖州市";
+  if (t.includes("嘉兴")) return "浙江省嘉兴市";
+  if (t.includes("丽水")) return "浙江省丽水市";
+  if (t.includes("宁波")) return "浙江省宁波市";
+  if (t.includes("绍兴")) return "浙江省绍兴市";
+  if (t.includes("义乌")) return "浙江省义乌市";
+  if (t.includes("重庆")) return "重庆市";
 
   return t || "未知";
 }
