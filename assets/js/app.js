@@ -38,7 +38,9 @@ const LABEL_MAX = 14;
 
 /** 图片底图模式：归一化锚点（0~1） */
 const CITY_ANCHORS = {
-  "XX市": { x: 0.63, y: 0.27 },
+  "安徽省合肥市": { x: 0.6680, y: 0.6168 },
+  "北京市": { x: 0.6440, y: 0.4069 },
+  "福建省福州市": { x: 0.7098, y: 0.7649 },
 };
 
 /** ECharts模式：经纬度点位 */
@@ -112,7 +114,9 @@ function normalizeCityName(location = "") {
   if (m) return m[1];
 
   // 常见别名兜底
+  if (t.includes("合肥")) return "安徽省合肥市";
   if (t.includes("北京")) return "北京市";
+  if (t.includes("福州")) return "福建省福州市";
   if (t.includes("上海")) return "上海市";
   if (t.includes("广州")) return "广州市";
   if (t.includes("深圳")) return "深圳市";
