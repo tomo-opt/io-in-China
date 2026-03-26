@@ -207,23 +207,73 @@ function renderSearchResults(list) {
   list.forEach((item) => ui.searchResults.appendChild(renderCard(item)));
 }
 
-/** 图片底图点位：文本改为 城市名(机构数)，且点大小有阈值 */
+/** 计算地图图片在 stage 中的基础显示盒子（未缩放前） */
+function getBaseImageBox() {
+  const stage = getImageStage();
+  const imgEl = ui.chinaMapImg;
+  if (!stage || !imgEl || !imgEl.naturalWidth || !imgEl.naturalHeight) return null;
+
+  const stageW = stage.clientWidth;
+  const stageH = stage.clientHeight;
+  const naturalW = imgEl.naturalWidth;
+  const naturalH = imgEl.naturalHeight;
+
+  const imgRatio = naturalW / naturalH;
+  const stageRatio = stageW / stageH;
+
+  let drawW, drawH, offsetX, offsetY;
+
+  if (stageRatio > imgRatio) {
+    drawH = stageH;
+    drawW = drawH * imgRatio;
+    offsetX = (stageW - drawW) / 2;
+    offsetY = 0;
+  } else {
+    drawW = stageW;
+    drawH = drawW / imgRatio;
+    offsetX = 0;
+    offsetY = (stageH - drawH) / 2;
+  }
+
+  return { drawW, drawH, offsetX, offsetY };
+}
+
+/** 计算当前缩放/拖拽后的图片显示盒子 */
+function getDisplayImageBox() {
+  const base = getBaseImageBox();
+  if (!base) return null;
+
+  return {
+    left: base.offsetX + imageView.x,
+    top: base.offsetY + imageView.y,
+    width: base.drawW * imageView.scale,
+    height: base.drawH * imageView.scale,
+  };
+}
+
+/** 图片底图点位：点与标签不再跟整层一起缩放，改为重算位置 */
 function renderCityDots(grouped) {
   if (!ui.cityLayer) return;
   ui.cityLayer.innerHTML = "";
 
+  const box = getDisplayImageBox();
+  if (!box) return;
+
   Object.entries(grouped).forEach(([city, rows]) => {
     const anchor = CITY_ANCHORS[city];
-    if (!anchor) return; // 无锚点先跳过
+    if (!anchor) return;
 
     const count = rows.length;
     const dotSize = countToDotSize(count);
 
+    const x = box.left + anchor.x * box.width;
+    const y = box.top + anchor.y * box.height;
+
     const dot = document.createElement("button");
     dot.type = "button";
     dot.className = "city-dot";
-    dot.style.left = `${anchor.x * 100}%`;
-    dot.style.top = `${anchor.y * 100}%`;
+    dot.style.left = `${x}px`;
+    dot.style.top = `${y}px`;
     dot.style.width = `${dotSize}px`;
     dot.style.height = `${dotSize}px`;
     dot.title = `${city}（${count}个机构）`;
@@ -257,7 +307,10 @@ async function ensureChinaMap() {
 let currentZoom = 1;
 
 /* ===============================
-   图片地图缩放 + 拖拽系统（新增）
+   图片地图缩放 + 拖拽系统（清晰版）
+   - 图片本身单独缩放/平移
+   - 点位层不再整体 transform
+   - 点位与标签通过重算位置保持清晰
 ================================ */
 
 const imageView = {
@@ -276,12 +329,24 @@ function getImageStage() {
 }
 
 function applyImageTransform() {
-  if (!ui.chinaMapImg || !ui.cityLayer) return;
+  if (!ui.chinaMapImg) return;
 
-  const transform = `translate(${imageView.x}px, ${imageView.y}px) scale(${imageView.scale})`;
+  const box = getDisplayImageBox();
+  if (!box) return;
 
-  ui.chinaMapImg.style.transform = transform;
-  ui.cityLayer.style.transform = transform;
+  ui.chinaMapImg.style.transform = "none";
+  ui.chinaMapImg.style.left = `${box.left}px`;
+  ui.chinaMapImg.style.top = `${box.top}px`;
+  ui.chinaMapImg.style.width = `${box.width}px`;
+  ui.chinaMapImg.style.height = `${box.height}px`;
+
+  if (ui.cityLayer) {
+    ui.cityLayer.style.transform = "none";
+  }
+
+  if (Array.isArray(filtered)) {
+    renderCityDots(groupByCity(filtered));
+  }
 }
 
 function resetImageView() {
@@ -298,7 +363,6 @@ function zoomImageAt(clientX, clientY, nextScale) {
   const rect = stage.getBoundingClientRect();
   const prevScale = imageView.scale;
   const scale = clamp(nextScale, imageView.minScale, imageView.maxScale);
-
   if (scale === prevScale) return;
 
   const px = clientX - rect.left;
@@ -319,10 +383,8 @@ function bindImageMapInteractions() {
   if (!stage || window.__imageMapBound) return;
 
   window.__imageMapBound = true;
-
   applyImageTransform();
 
-  // 滚轮缩放
   stage.addEventListener(
     "wheel",
     (e) => {
@@ -333,14 +395,13 @@ function bindImageMapInteractions() {
     { passive: false }
   );
 
-  // 拖拽
   stage.addEventListener("pointerdown", (e) => {
     if (e.button !== 0) return;
+    if (e.target.closest(".city-dot")) return;
 
     imageView.dragging = true;
     imageView.startX = e.clientX - imageView.x;
     imageView.startY = e.clientY - imageView.y;
-
     stage.classList.add("is-dragging");
   });
 
@@ -349,7 +410,6 @@ function bindImageMapInteractions() {
 
     imageView.x = e.clientX - imageView.startX;
     imageView.y = e.clientY - imageView.startY;
-
     applyImageTransform();
   });
 
@@ -358,7 +418,6 @@ function bindImageMapInteractions() {
     stage.classList.remove("is-dragging");
   });
 
-  // 双击缩放
   stage.addEventListener("dblclick", (e) => {
     e.preventDefault();
 
@@ -369,7 +428,6 @@ function bindImageMapInteractions() {
     }
   });
 
-  // resize 保持状态
   window.addEventListener("resize", () => {
     applyImageTransform();
   });
