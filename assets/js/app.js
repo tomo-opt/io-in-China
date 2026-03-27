@@ -553,7 +553,7 @@ function layoutCityLabels() {
   });
 }
 
-/** 图片底图点位：点与标签不再跟整层一起缩放，改为重算位置 + 自动避让 */
+/** 图片底图点位：点与标签不再跟整层一起缩放，改为重算位置 + 自动避让 + hover置顶 */
 function renderCityDots(grouped) {
   if (!ui.cityLayer) return;
   ui.cityLayer.innerHTML = "";
@@ -584,8 +584,59 @@ function renderCityDots(grouped) {
     dot.dataset.x = String(x);
     dot.dataset.y = String(y);
     dot.dataset.dotSize = String(dotSize);
-    dot.innerHTML = `<span class="count">${city}(${count})</span>`;
-    dot.addEventListener("click", () => openDrawer(city, rows));
+
+    const label = document.createElement("span");
+    label.className = "count";
+    label.textContent = `${city}(${count})`;
+    label.setAttribute("role", "button");
+    label.setAttribute("tabindex", "0");
+    label.setAttribute("aria-label", `${city}，${count}个机构`);
+    dot.appendChild(label);
+
+    const openCityDrawer = () => openDrawer(city, rows);
+
+    const activateCity = () => {
+      dot.classList.add("is-hovered-city");
+      dot.style.zIndex = "40";
+      if (ui.cityLayer.lastElementChild !== dot) {
+        ui.cityLayer.appendChild(dot);
+      }
+    };
+
+    const deactivateCity = () => {
+      dot.classList.remove("is-hovered-city");
+      dot.style.zIndex = "";
+    };
+
+    dot.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openCityDrawer();
+    });
+
+    label.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openCityDrawer();
+    });
+
+    label.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        e.stopPropagation();
+        openCityDrawer();
+      }
+    });
+
+    dot.addEventListener("mouseenter", activateCity);
+    dot.addEventListener("mouseleave", deactivateCity);
+    dot.addEventListener("focus", activateCity);
+    dot.addEventListener("blur", deactivateCity);
+
+    label.addEventListener("mouseenter", activateCity);
+    label.addEventListener("mouseleave", deactivateCity);
+    label.addEventListener("focus", activateCity);
+    label.addEventListener("blur", deactivateCity);
 
     ui.cityLayer.appendChild(dot);
   });
