@@ -683,13 +683,26 @@ let currentZoom = 1;
    - 点位与标签通过重算位置保持清晰
 ================================ */
 
+function getDefaultImageScale() {
+  return window.matchMedia("(max-width: 768px)").matches ? 1.22 : 1;
+}
+
 const imageView = {
-  scale: 1,
+  scale: getDefaultImageScale(),
   minScale: 1,
-  maxScale: 3.5,
+  maxScale: 4.2,
   x: 0,
   y: 0,
   dragging: false,
+  startX: 0,
+  startY: 0,
+};
+
+const activePointers = new Map();
+const pinchState = {
+  active: false,
+  startDistance: 0,
+  startScale: 1,
   startX: 0,
   startY: 0,
 };
@@ -720,9 +733,10 @@ function applyImageTransform() {
 }
 
 function resetImageView() {
-  imageView.scale = 1;
+  imageView.scale = getDefaultImageScale();
   imageView.x = 0;
   imageView.y = 0;
+  pinchState.active = false;
   applyImageTransform();
 }
 
@@ -748,12 +762,51 @@ function zoomImageAt(clientX, clientY, nextScale) {
   applyImageTransform();
 }
 
+function getTwoTouchStats() {
+  const points = [...activePointers.values()];
+  if (points.length < 2) return null;
+
+  const [p1, p2] = points;
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+
+  return {
+    distance: Math.hypot(dx, dy),
+    centerX: (p1.x + p2.x) / 2,
+    centerY: (p1.y + p2.y) / 2,
+  };
+}
+
+function updatePinchZoom(centerX, centerY, distance) {
+  const stage = getImageStage();
+  if (!stage || !pinchState.active || !pinchState.startDistance) return;
+
+  const rect = stage.getBoundingClientRect();
+  const px = centerX - rect.left;
+  const py = centerY - rect.top;
+
+  const nextScale = clamp(
+    pinchState.startScale * (distance / pinchState.startDistance),
+    imageView.minScale,
+    imageView.maxScale
+  );
+
+  const worldX = (px - pinchState.startX) / pinchState.startScale;
+  const worldY = (py - pinchState.startY) / pinchState.startScale;
+
+  imageView.scale = nextScale;
+  imageView.x = px - worldX * nextScale;
+  imageView.y = py - worldY * nextScale;
+
+  applyImageTransform();
+}
+
 function bindImageMapInteractions() {
   const stage = getImageStage();
   if (!stage || window.__imageMapBound) return;
 
   window.__imageMapBound = true;
-  applyImageTransform();
+  resetImageView();
 
   stage.addEventListener(
     "wheel",
@@ -765,19 +818,67 @@ function bindImageMapInteractions() {
     { passive: false }
   );
 
-stage.addEventListener("pointerdown", (e) => {
-  if (e.button !== 0) return;
-  if (e.altKey) return;
-  if (e.target.closest(".city-dot")) return;
+  stage.addEventListener("pointerdown", (e) => {
+    if (e.pointerType === "mouse") {
+      if (e.button !== 0) return;
+      if (e.altKey) return;
+      if (e.target.closest(".city-dot")) return;
 
-  imageView.dragging = true;
-  imageView.startX = e.clientX - imageView.x;
-  imageView.startY = e.clientY - imageView.y;
+      imageView.dragging = true;
+      imageView.startX = e.clientX - imageView.x;
+      imageView.startY = e.clientY - imageView.y;
+      stage.classList.add("is-dragging");
+      return;
+    }
 
-  stage.classList.add("is-dragging");
-});
+    if (e.pointerType === "touch") {
+      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      if (activePointers.size === 1) {
+        if (e.target.closest(".city-dot")) return;
+
+        imageView.dragging = true;
+        imageView.startX = e.clientX - imageView.x;
+        imageView.startY = e.clientY - imageView.y;
+        stage.classList.add("is-dragging");
+      }
+
+      if (activePointers.size === 2) {
+        imageView.dragging = false;
+        stage.classList.remove("is-dragging");
+
+        const stats = getTwoTouchStats();
+        if (stats) {
+          pinchState.active = true;
+          pinchState.startDistance = stats.distance;
+          pinchState.startScale = imageView.scale;
+          pinchState.startX = imageView.x;
+          pinchState.startY = imageView.y;
+        }
+      }
+    }
+  });
 
   window.addEventListener("pointermove", (e) => {
+    if (e.pointerType === "touch" && activePointers.has(e.pointerId)) {
+      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      if (pinchState.active && activePointers.size >= 2) {
+        const stats = getTwoTouchStats();
+        if (stats) {
+          updatePinchZoom(stats.centerX, stats.centerY, stats.distance);
+        }
+        return;
+      }
+
+      if (imageView.dragging && activePointers.size === 1) {
+        imageView.x = e.clientX - imageView.startX;
+        imageView.y = e.clientY - imageView.startY;
+        applyImageTransform();
+      }
+      return;
+    }
+
     if (!imageView.dragging) return;
 
     imageView.x = e.clientX - imageView.startX;
@@ -785,22 +886,53 @@ stage.addEventListener("pointerdown", (e) => {
     applyImageTransform();
   });
 
-  window.addEventListener("pointerup", () => {
+  function endPointerInteraction(e) {
+    if (e.pointerType === "touch") {
+      activePointers.delete(e.pointerId);
+
+      if (activePointers.size < 2) {
+        pinchState.active = false;
+      }
+
+      if (activePointers.size === 1) {
+        const remaining = [...activePointers.values()][0];
+        imageView.dragging = true;
+        imageView.startX = remaining.x - imageView.x;
+        imageView.startY = remaining.y - imageView.y;
+        stage.classList.add("is-dragging");
+        return;
+      }
+
+      if (activePointers.size === 0) {
+        imageView.dragging = false;
+        stage.classList.remove("is-dragging");
+      }
+
+      return;
+    }
+
     imageView.dragging = false;
     stage.classList.remove("is-dragging");
-  });
+  }
+
+  window.addEventListener("pointerup", endPointerInteraction);
+  window.addEventListener("pointercancel", endPointerInteraction);
 
   stage.addEventListener("dblclick", (e) => {
     e.preventDefault();
 
-    if (imageView.scale > 1.05) {
+    if (imageView.scale > getDefaultImageScale() + 0.05) {
       resetImageView();
     } else {
-      zoomImageAt(e.clientX, e.clientY, 1.8);
+      zoomImageAt(e.clientX, e.clientY, Math.max(1.8, getDefaultImageScale() + 0.6));
     }
   });
 
   window.addEventListener("resize", () => {
+    const prevDefault = imageView.scale < 1.4;
+    if (prevDefault) {
+      imageView.scale = getDefaultImageScale();
+    }
     applyImageTransform();
   });
 }
