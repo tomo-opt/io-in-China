@@ -168,16 +168,16 @@ function getField(row, keys) {
 
 function normalize(row) {
   return {
-    cn: getField(row, ["中文名", "机构中文名", "name_zh"]),
-    en: getField(row, ["英文名", "机构英文名", "name_en"]),
-    attr: getField(row, ["属性", "attribute"]),
-    category1: getField(row, ["第一细分类", "一级分类", "category_level_1"]),
-    year: getField(row, ["成立年份", "year_founded", "founded_year"]),
-    location: getField(row, ["所在省份+城市（细）", "所在省份+城市", "location_detail"]),
-    website: getField(row, ["官网", "website"]),
-    linkedin: getField(row, ["LinkedIn", "linkedin"]),
-    intro: getField(row, ["机构介绍", "简介", "introduction"]),
-    refs: getField(row, ["参考文献", "references", "reference"]),
+    cn: getField(row, ["中文名"]),
+    en: getField(row, ["英文名"]),
+    attr: getField(row, ["属性"]),
+    category1: getField(row, ["第一细分类"]),
+    year: getField(row, ["成立年份"]),
+    location: getField(row, ["所在地"]),
+    website: getField(row, ["官网"]),
+    linkedin: getField(row, ["LinkedIn"]),
+    intro: getField(row, ["中国办公室介绍"]),
+    refs: getField(row, ["参考文献"]),
   };
 }
 
@@ -292,22 +292,33 @@ function renderCard(item) {
   const div = document.createElement("article");
   div.className = "card";
   div.style.borderLeftColor = cardColor(item);
+
+  const websiteHtml =
+    item.website && item.website !== "暂无"
+      ? `<a href="${item.website}" target="_blank" rel="noopener noreferrer">${item.website}</a>`
+      : "暂无";
+
+  const linkedinHtml =
+    item.linkedin && item.linkedin !== "暂无"
+      ? `<a href="${item.linkedin}" target="_blank" rel="noopener noreferrer">${item.linkedin}</a>`
+      : "暂无";
+
   div.innerHTML = `
     <h3>${item.cn || "未命名机构"}</h3>
     <p class="sub">${item.en || "-"}</p>
     <div class="meta">
-      <div><strong>属性：</strong>${item.attr || "-"}</div>
-      <div><strong>第一细分类：</strong>${item.category1 || "-"}</div>
-      <div><strong>成立年份：</strong>${item.year || "-"}</div>
-      <div><strong>所在地：</strong>${item.location || "-"}</div>
-      <div><strong>官网：</strong>${item.website ? `<a href="${item.website}" target="_blank">${item.website}</a>` : "-"}</div>
-      <div><strong>LinkedIn：</strong>${item.linkedin ? `<a href="${item.linkedin}" target="_blank">${item.linkedin}</a>` : "-"}</div>
+      <div><strong>属性：</strong>${item.attr || "暂无"}</div>
+      <div><strong>第一细分类：</strong>${item.category1 || "暂无"}</div>
+      <div><strong>成立年份：</strong>${item.year || "暂无"}</div>
+      <div><strong>所在地：</strong>${item.location || "暂无"}</div>
+      <div><strong>官网：</strong>${websiteHtml}</div>
+      <div><strong>LinkedIn：</strong>${linkedinHtml}</div>
     </div>
     <details>
       <summary>展开查看介绍与参考文献</summary>
       <div class="expand">
-        <div><strong>介绍：</strong>${item.intro || "-"}</div>
-        <div style="margin-top: 6px;"><strong>参考文献：</strong>${item.refs || "-"}</div>
+        <div><strong>中国办公室介绍：</strong>${item.intro || "暂无"}</div>
+        <div style="margin-top: 6px;"><strong>参考文献：</strong>${item.refs || "暂无"}</div>
       </div>
     </details>
   `;
@@ -1064,10 +1075,26 @@ function bindAnchorCaptureTool() {
   );
 }
 
-function parseCsv(path) {
+async function parseCsv(path) {
+  const res = await fetch(path, {
+    cache: "no-store",
+    credentials: "same-origin",
+  });
+
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status} while fetching ${path}`);
+  }
+
+  let text = await res.text();
+
+  // 去掉 UTF-8 BOM
+  text = text.replace(/^\uFEFF/, "");
+
+  // 去掉隐藏字符
+  text = text.replace(/[\u200B-\u200D\u2060]/g, "");
+
   return new Promise((resolve, reject) => {
-    Papa.parse(path, {
-      download: true,
+    Papa.parse(text, {
       header: true,
       skipEmptyLines: true,
       complete: resolve,
@@ -1131,22 +1158,50 @@ function bindEvents() {
 }
 
 async function loadData() {
+  const errors = [];
+
   for (const path of CSV_PATHS) {
     try {
       const res = await parseCsv(path);
+
       if (res?.data?.length) {
-        records = res.data.map(normalize).filter((x) => x.cn || x.en);
+        records = res.data
+          .map(normalize)
+          .filter((x) => x.cn || x.en);
+
+        if (!records.length) {
+          throw new Error(`CSV parsed but produced 0 valid records: ${path}`);
+        }
+
         updateFilterOptions();
-        bindEvents();   // 只会绑定一次（上面有 guard）
+        bindEvents();
         applyFilters();
+
+        console.log(`CSV loaded successfully from: ${path}`, {
+          totalRows: res.data.length,
+          validRecords: records.length,
+          sampleRecord: records[0],
+        });
+
         return;
       }
-    } catch (_) {
-      // try next csv path
+
+      throw new Error(`CSV parsed but no rows found: ${path}`);
+    } catch (err) {
+      console.error(`CSV load failed for ${path}:`, err);
+      errors.push(`${path}: ${err?.message || err}`);
     }
   }
 
-  alert("数据文件加载失败。请确认仓库根目录或 data 目录中存在 CSV 文件，且编码为 UTF-8。");
+  console.error("All CSV paths failed:", errors);
+
+  alert(
+    "数据文件加载失败。请确认：\n" +
+    "1. 仓库根目录或 data 目录中存在 CSV 文件；\n" +
+    "2. 文件编码为 UTF-8；\n" +
+    "3. CSV 表头已统一为：中文名、英文名、属性、第一细分类、成立年份、所在地、官网、LinkedIn、中国办公室介绍、参考文献；\n" +
+    "4. 手机端浏览器可正常访问该 CSV 文件。"
+  );
 }
 
 async function init() {
