@@ -1,8 +1,5 @@
 const CSV_PATHS = [
   "data/io_orgs.csv",
-  "./data/io_orgs.csv",
-  "io_orgs.csv",
-  "./io_orgs.csv",
 ];
 
 const MAP_GEOJSON_PATHS = [
@@ -1077,6 +1074,66 @@ function bindAnchorCaptureTool() {
   );
 }
 
+function parseCsvTextFallback(text) {
+  const rows = [];
+  let row = [];
+  let cell = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    const next = text[i + 1];
+
+    if (ch === '"') {
+      if (inQuotes && next === '"') {
+        cell += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (ch === "," && !inQuotes) {
+      row.push(cell);
+      cell = "";
+      continue;
+    }
+
+    if ((ch === "\n" || ch === "\r") && !inQuotes) {
+      if (ch === "\r" && next === "\n") i++;
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = "";
+      continue;
+    }
+
+    cell += ch;
+  }
+
+  if (cell.length > 0 || row.length > 0) {
+    row.push(cell);
+    rows.push(row);
+  }
+
+  const nonEmptyRows = rows.filter((r) => r.some((v) => String(v).trim() !== ""));
+  if (!nonEmptyRows.length) {
+    return { data: [], errors: [{ message: "CSV is empty after parsing." }] };
+  }
+
+  const headers = nonEmptyRows[0].map((h) => String(h).replace(/^\uFEFF/, "").trim());
+  const data = nonEmptyRows.slice(1).map((r) => {
+    const obj = {};
+    headers.forEach((h, idx) => {
+      obj[h] = r[idx] !== undefined ? String(r[idx]).trim() : "";
+    });
+    return obj;
+  });
+
+  return { data, errors: [] };
+}
+
 async function parseCsv(path) {
   const url = new URL(path, window.location.href).href;
 
@@ -1101,21 +1158,27 @@ async function parseCsv(path) {
   // 去掉隐藏字符
   text = text.replace(/[\u200B-\u200D\u2060]/g, "");
 
-  return new Promise((resolve, reject) => {
-    Papa.parse(text, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        if (results?.errors?.length) {
-          console.warn("CSV parse warnings:", results.errors.slice(0, 20));
-        }
-        resolve(results);
-      },
-      error: (err) => {
-        reject(new Error(`Papa parse failed for ${url}: ${err?.message || err}`));
-      },
+  // 优先用 Papa；若手机端 CDN 没加载成功，则自动回退到本地解析器
+  if (typeof Papa !== "undefined" && typeof Papa.parse === "function") {
+    return new Promise((resolve, reject) => {
+      Papa.parse(text, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          if (results?.errors?.length) {
+            console.warn("CSV parse warnings:", results.errors.slice(0, 20));
+          }
+          resolve(results);
+        },
+        error: (err) => {
+          reject(new Error(`Papa parse failed for ${url}: ${err?.message || err}`));
+        },
+      });
     });
-  });
+  }
+
+  console.warn("Papa is not available; using fallback CSV parser.");
+  return parseCsvTextFallback(text);
 }
 
 function bindEvents() {
@@ -1215,10 +1278,10 @@ async function loadData() {
   alert(
     "数据文件加载失败。\n\n" +
     "请优先检查：\n" +
-    "1. CSV 是否已改为 ASCII 文件名（建议 data/io_orgs.csv）；\n" +
-    "2. 文件是否确实存在于 data 目录；\n" +
-    "3. 文件编码是否为 UTF-8；\n" +
-    "4. 表头是否为：中文名、英文名、属性、第一细分类、成立年份、所在地、官网、LinkedIn、中国办公室介绍、参考文献；\n\n" +
+    "1. data/io_orgs.csv 是否确实存在；\n" +
+    "2. 文件编码是否为 UTF-8；\n" +
+    "3. 表头是否为：中文名、英文名、属性、第一细分类、成立年份、所在地、官网、LinkedIn、中国办公室介绍、参考文献；\n" +
+    "4. 页面脚本是否全部成功加载。\n\n" +
     "调试信息：\n" + debugText
   );
 }
