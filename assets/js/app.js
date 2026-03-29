@@ -1,6 +1,8 @@
 const CSV_PATHS = [
-  "新的国际组织全量分类表_新版_enriched_20260325_141013.csv",
-  "data/新的国际组织全量分类表_新版_enriched_20260325_141013.csv",
+  "data/io_orgs.csv",
+  "./data/io_orgs.csv",
+  "io_orgs.csv",
+  "./io_orgs.csv",
 ];
 
 const MAP_GEOJSON_PATHS = [
@@ -1076,16 +1078,22 @@ function bindAnchorCaptureTool() {
 }
 
 async function parseCsv(path) {
-  const res = await fetch(path, {
+  const url = new URL(path, window.location.href).href;
+
+  const res = await fetch(url, {
     cache: "no-store",
     credentials: "same-origin",
   });
 
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} while fetching ${path}`);
+    throw new Error(`HTTP ${res.status} while fetching ${url}`);
   }
 
   let text = await res.text();
+
+  if (!text || !text.trim()) {
+    throw new Error(`CSV text is empty: ${url}`);
+  }
 
   // 去掉 UTF-8 BOM
   text = text.replace(/^\uFEFF/, "");
@@ -1097,8 +1105,15 @@ async function parseCsv(path) {
     Papa.parse(text, {
       header: true,
       skipEmptyLines: true,
-      complete: resolve,
-      error: reject,
+      complete: (results) => {
+        if (results?.errors?.length) {
+          console.warn("CSV parse warnings:", results.errors.slice(0, 20));
+        }
+        resolve(results);
+      },
+      error: (err) => {
+        reject(new Error(`Papa parse failed for ${url}: ${err?.message || err}`));
+      },
     });
   });
 }
@@ -1164,29 +1179,29 @@ async function loadData() {
     try {
       const res = await parseCsv(path);
 
-      if (res?.data?.length) {
-        records = res.data
-          .map(normalize)
-          .filter((x) => x.cn || x.en);
-
-        if (!records.length) {
-          throw new Error(`CSV parsed but produced 0 valid records: ${path}`);
-        }
-
-        updateFilterOptions();
-        bindEvents();
-        applyFilters();
-
-        console.log(`CSV loaded successfully from: ${path}`, {
-          totalRows: res.data.length,
-          validRecords: records.length,
-          sampleRecord: records[0],
-        });
-
-        return;
+      if (!res?.data?.length) {
+        throw new Error(`CSV parsed but no rows found: ${path}`);
       }
 
-      throw new Error(`CSV parsed but no rows found: ${path}`);
+      records = res.data
+        .map(normalize)
+        .filter((x) => x.cn || x.en);
+
+      if (!records.length) {
+        throw new Error(`CSV parsed but produced 0 valid records: ${path}`);
+      }
+
+      updateFilterOptions();
+      bindEvents();
+      applyFilters();
+
+      console.log(`CSV loaded successfully from: ${path}`, {
+        totalRows: res.data.length,
+        validRecords: records.length,
+        sampleRecord: records[0],
+      });
+
+      return;
     } catch (err) {
       console.error(`CSV load failed for ${path}:`, err);
       errors.push(`${path}: ${err?.message || err}`);
@@ -1195,12 +1210,16 @@ async function loadData() {
 
   console.error("All CSV paths failed:", errors);
 
+  const debugText = errors.join("\n");
+
   alert(
-    "数据文件加载失败。请确认：\n" +
-    "1. 仓库根目录或 data 目录中存在 CSV 文件；\n" +
-    "2. 文件编码为 UTF-8；\n" +
-    "3. CSV 表头已统一为：中文名、英文名、属性、第一细分类、成立年份、所在地、官网、LinkedIn、中国办公室介绍、参考文献；\n" +
-    "4. 手机端浏览器可正常访问该 CSV 文件。"
+    "数据文件加载失败。\n\n" +
+    "请优先检查：\n" +
+    "1. CSV 是否已改为 ASCII 文件名（建议 data/io_orgs.csv）；\n" +
+    "2. 文件是否确实存在于 data 目录；\n" +
+    "3. 文件编码是否为 UTF-8；\n" +
+    "4. 表头是否为：中文名、英文名、属性、第一细分类、成立年份、所在地、官网、LinkedIn、中国办公室介绍、参考文献；\n\n" +
+    "调试信息：\n" + debugText
   );
 }
 
