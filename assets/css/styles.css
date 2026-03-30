@@ -1177,3 +1177,84 @@ body.calibration-mode .map-image-stage {
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================
+   地图总览页紧凑筛选样式
+   ========================= */
+
+.multi-select-compact .multi-select-panel {
+  width: 100%;
+  min-width: 0;
+  max-height: 220px;
+  padding: 6px;
+}
+
+.multi-select-compact .multi-select-actions {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 2;
+  padding: 4px 4px 8px;
+}
+
+.multi-select-options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.multi-select-option-compact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+}
+
+.multi-select-option-compact input {
+  order: 2;
+  flex: 0 0 auto;
+}
+
+.multi-select-option-text {
+  order: 1;
+  flex: 1 1 auto;
+  min-width: 0;
+  line-height: 1.45;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.search-panel .filters-multiselect {
+  align-items: start;
+}
+
+.search-panel .filter-slot {
+  min-width: 0;
+}
+
+.drawer-filter-shell .multi-select-compact .multi-select-panel {
+  max-height: 180px;
+}
+
+.drawer-filter-shell .multi-select-option-compact {
+  padding: 7px 8px;
+}
+
+@media (max-width: 768px) {
+  .search-panel .multi-select-compact .multi-select-panel {
+    max-height: 180px;
+  }
+
+  .drawer-filter-shell .multi-select-compact .multi-select-panel {
+    max-height: 160px;
+  }
+
+  .multi-select-option-compact {
+    padding: 7px 8px;
+  }
+
+  .multi-select-option-text {
+    font-size: 12px;
+  }
+}
