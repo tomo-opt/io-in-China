@@ -142,16 +142,102 @@ function uniqueSortedValues(values, type = "text") {
   return arr.sort((a, b) => a.localeCompare(b, "zh-CN-u-co-pinyin"));
 }
 
-function parseCsv(path) {
-  return new Promise((resolve, reject) => {
-    Papa.parse(path, {
-      download: true,
-      header: true,
-      skipEmptyLines: true,
-      complete: resolve,
-      error: reject
+function parseCsvTextFallback(text) {
+  const rows = [];
+  let row = [];
+  let cell = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    const next = text[i + 1];
+
+    if (ch === '"') {
+      if (inQuotes && next === '"') {
+        cell += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (ch === "," && !inQuotes) {
+      row.push(cell);
+      cell = "";
+      continue;
+    }
+
+    if ((ch === "\n" || ch === "\r") && !inQuotes) {
+      if (ch === "\r" && next === "\n") i++;
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = "";
+      continue;
+    }
+
+    cell += ch;
+  }
+
+  if (cell.length > 0 || row.length > 0) {
+    row.push(cell);
+    rows.push(row);
+  }
+
+  const nonEmptyRows = rows.filter((r) => r.some((v) => String(v).trim() !== ""));
+  if (!nonEmptyRows.length) {
+    return { data: [], errors: [{ message: "CSV is empty after parsing." }] };
+  }
+
+  const headers = nonEmptyRows[0].map((h) => String(h).replace(/^\uFEFF/, "").trim());
+  const data = nonEmptyRows.slice(1).map((r) => {
+    const obj = {};
+    headers.forEach((h, idx) => {
+      obj[h] = r[idx] !== undefined ? String(r[idx]).trim() : "";
     });
+    return obj;
   });
+
+  return { data, errors: [] };
+}
+
+async function parseCsv(path) {
+  const url = new URL(path, window.location.href).href;
+
+  const res = await fetch(url, {
+    cache: "no-store",
+    credentials: "same-origin",
+  });
+
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status} while fetching ${url}`);
+  }
+
+  let text = await res.text();
+
+  if (!text || !text.trim()) {
+    throw new Error(`CSV text is empty: ${url}`);
+  }
+
+  text = text.replace(/^\uFEFF/, "");
+  text = text.replace(/[\u200B-\u200D\u2060]/g, "");
+
+  if (typeof Papa !== "undefined" && typeof Papa.parse === "function") {
+    return new Promise((resolve, reject) => {
+      Papa.parse(text, {
+        header: true,
+        skipEmptyLines: true,
+        complete: resolve,
+        error: (err) => {
+          reject(new Error(`Papa parse failed for ${url}: ${err?.message || err}`));
+        }
+      });
+    });
+  }
+
+  console.warn("Papa is not available; using fallback CSV parser.");
+  return parseCsvTextFallback(text);
 }
 
 function buildFilterOptions() {
