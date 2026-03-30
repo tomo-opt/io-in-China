@@ -59,14 +59,24 @@
 
       <section class="cards-page">
         <div class="cards-page-head">
-          <div>
+          <div class="cards-page-title-wrap">
             <h1>机构卡片库</h1>
             <p class="cards-page-desc">
               按中文名称拼音序展示全部机构，支持关键词检索、条件筛选与分页浏览。
             </p>
           </div>
 
-          <div class="cards-toolbar">
+          <aside class="cards-total-hero" aria-label="机构总数概览">
+            <div class="cards-total-hero-label">机构总数</div>
+            <div id="totalCountHero" class="cards-total-hero-number">--</div>
+            <div class="cards-total-hero-sub">随数据库内容实时更新</div>
+          </aside>
+        </div>
+
+        <div class="cards-toolbar cards-toolbar-pro">
+          <div id="cardsSummary" class="cards-summary"></div>
+
+          <div class="cards-toolbar-right">
             <label class="page-size-wrap">
               每页显示
               <select id="pageSizeSelect">
@@ -78,11 +88,9 @@
           </div>
         </div>
 
-        <div id="cardsSummary" class="cards-summary"></div>
-
         <div id="allCards" class="cards-grid"></div>
 
-        <div id="pagination" class="pagination"></div>
+        <div id="pagination" class="pagination pagination-pro"></div>
       </section>
     </main>
 
