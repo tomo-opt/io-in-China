@@ -525,6 +525,12 @@ body.calibration-mode .map-image-stage {
   margin-top: 12px;
 }
 
+.filters .filter-slot + .filter-slot,
+.filters-multiselect .filter-slot + .filter-slot,
+.filters-multiselect-drawer .filter-slot + .filter-slot {
+  margin-top: 0;
+}
+
 .filter-group-label {
   font-size: 12px;
   color: var(--muted);
@@ -1183,10 +1189,12 @@ body.calibration-mode .map-image-stage {
    ========================= */
 
 .multi-select-compact .multi-select-panel {
-  width: 100%;
+  width: max(100%, 220px);
   min-width: 0;
   max-height: 220px;
   padding: 6px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .multi-select-compact .multi-select-actions {
@@ -1204,25 +1212,37 @@ body.calibration-mode .map-image-stage {
 }
 
 .multi-select-option-compact {
-  display: flex;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   padding: 8px 10px;
 }
 
 .multi-select-option-compact input {
-  order: 2;
-  flex: 0 0 auto;
+  margin: 0;
+  width: 14px;
+  height: 14px;
 }
 
 .multi-select-option-text {
-  order: 1;
-  flex: 1 1 auto;
   min-width: 0;
   line-height: 1.45;
   color: var(--text);
-  word-break: break-word;
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  display: block;
+  scrollbar-width: thin;
+}
+
+.multi-select-option-text::-webkit-scrollbar {
+  height: 6px;
+}
+
+.multi-select-option-text::-webkit-scrollbar-thumb {
+  background: #c7d4e8;
+  border-radius: 999px;
 }
 
 .search-panel .filters-multiselect {
@@ -1233,11 +1253,26 @@ body.calibration-mode .map-image-stage {
   min-width: 0;
 }
 
+.search-panel .filter-group,
+.drawer-filter-shell .filter-group {
+  min-width: 0;
+}
+
+.search-panel .multi-select-trigger,
+.drawer-filter-shell .multi-select-trigger {
+  min-height: 44px;
+}
+
+.search-panel .multi-select-panel {
+  z-index: 40;
+}
+
 .drawer-filter-shell .multi-select-compact .multi-select-panel {
   max-height: 180px;
 }
 
 .drawer-filter-shell .multi-select-option-compact {
+  grid-template-columns: 18px minmax(0, 1fr);
   padding: 7px 8px;
 }
 
@@ -1251,6 +1286,7 @@ body.calibration-mode .map-image-stage {
   }
 
   .multi-select-option-compact {
+    grid-template-columns: 18px minmax(0, 1fr);
     padding: 7px 8px;
   }
 
