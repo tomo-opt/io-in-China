@@ -15,10 +15,75 @@
       </nav>
     </header>
 
-    <main class="cards-page">
-      <h1>机构卡片库（第二分页面）</h1>
-      <p>该页面保留为完整卡片检索页，当前已可直接按地图页逻辑读取并平铺展示全部机构。</p>
-      <div id="allCards" class="cards-grid"></div>
+    <main class="cards-page-shell">
+      <section class="search-panel cards-search-panel" aria-label="搜索与筛选">
+        <div class="search-row">
+          <input
+            id="searchInput"
+            type="text"
+            placeholder="检索任意字段：机构名、所在城市、属性、行动领域、官网等"
+          />
+          <button id="resetBtn" type="button">重置</button>
+        </div>
+
+        <div class="filters">
+          <label>属性
+            <select id="attrFilter">
+              <option value="">全部</option>
+            </select>
+          </label>
+
+          <label>行动领域
+            <select id="categoryFilter">
+              <option value="">全部</option>
+            </select>
+          </label>
+
+          <label>成立年份
+            <select id="yearFilter">
+              <option value="">全部</option>
+            </select>
+          </label>
+
+          <label>所在城市
+            <select id="cityFilter">
+              <option value="">全部</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="tag-hint">
+          可用筛选变量：属性 / 行动领域 / 成立年份 / 所在城市
+        </div>
+      </section>
+
+      <section class="cards-page">
+        <div class="cards-page-head">
+          <div>
+            <h1>机构卡片库</h1>
+            <p class="cards-page-desc">
+              按中文名称拼音序展示全部机构，支持关键词检索、条件筛选与分页浏览。
+            </p>
+          </div>
+
+          <div class="cards-toolbar">
+            <label class="page-size-wrap">
+              每页显示
+              <select id="pageSizeSelect">
+                <option value="20">20</option>
+                <option value="50">50</option>
+              </select>
+              条
+            </label>
+          </div>
+        </div>
+
+        <div id="cardsSummary" class="cards-summary"></div>
+
+        <div id="allCards" class="cards-grid"></div>
+
+        <div id="pagination" class="pagination"></div>
+      </section>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
