@@ -15,83 +15,76 @@
       </nav>
     </header>
 
-    <main class="cards-page-shell">
-      <section class="search-panel cards-search-panel" aria-label="搜索与筛选">
-        <div class="search-row">
-          <input
-            id="searchInput"
-            type="text"
-            placeholder="检索任意字段：机构名、所在城市、属性、行动领域、官网等"
-          />
-          <button id="resetBtn" type="button">重置</button>
-        </div>
-
-        <div class="filters">
-          <label>属性
-            <select id="attrFilter">
-              <option value="">全部</option>
-            </select>
-          </label>
-
-          <label>行动领域
-            <select id="categoryFilter">
-              <option value="">全部</option>
-            </select>
-          </label>
-
-          <label>成立年份
-            <select id="yearFilter">
-              <option value="">全部</option>
-            </select>
-          </label>
-
-          <label>所在城市
-            <select id="cityFilter">
-              <option value="">全部</option>
-            </select>
-          </label>
-        </div>
-
-        <div class="tag-hint">
-          可用筛选变量：属性 / 行动领域 / 成立年份 / 所在城市
-        </div>
-      </section>
-
-      <section class="cards-page">
-        <div class="cards-page-head">
-          <div class="cards-page-title-wrap">
-            <h1>机构卡片库</h1>
-            <p class="cards-page-desc">
-              按中文名称拼音序展示全部机构，支持关键词检索、条件筛选与分页浏览。
-            </p>
-          </div>
-
-          <aside class="cards-total-hero" aria-label="机构总数概览">
+    <main class="cards-db-page">
+      <div class="cards-db-layout">
+        <aside class="cards-db-sidebar">
+          <section class="cards-total-hero" aria-label="机构总数概览">
             <div class="cards-total-hero-label">机构总数</div>
             <div id="totalCountHero" class="cards-total-hero-number">--</div>
             <div class="cards-total-hero-sub">随数据库内容实时更新</div>
-          </aside>
-        </div>
+          </section>
 
-        <div class="cards-toolbar cards-toolbar-pro">
-          <div id="cardsSummary" class="cards-summary"></div>
+          <section class="sidebar-card">
+            <div class="sidebar-card-title">关键词检索</div>
+            <div class="search-row search-row-sidebar">
+              <input
+                id="searchInput"
+                type="text"
+                placeholder="检索机构名、城市、属性、行动领域、官网等"
+              />
+            </div>
+            <div class="sidebar-search-tip">支持任意字段模糊检索</div>
+          </section>
 
-          <div class="cards-toolbar-right">
-            <label class="page-size-wrap">
-              每页显示
-              <select id="pageSizeSelect">
-                <option value="20">20</option>
-                <option value="50">50</option>
-              </select>
-              条
-            </label>
+          <section class="sidebar-card">
+            <div class="sidebar-card-title">条件筛选</div>
+
+            <div id="filterAttr" class="filter-slot"></div>
+            <div id="filterCategory" class="filter-slot"></div>
+            <div id="filterYear" class="filter-slot"></div>
+            <div id="filterCity" class="filter-slot"></div>
+
+            <button id="resetBtn" type="button" class="sidebar-reset-btn">重置全部条件</button>
+          </section>
+        </aside>
+
+        <section class="cards-db-main">
+          <div class="cards-db-header">
+            <div>
+              <h1>机构卡片库</h1>
+              <p class="cards-page-desc">
+                按中文名称拼音序展示全部机构，支持多条件筛选、分页浏览，以及卡片 / 列表双视图切换。
+              </p>
+            </div>
           </div>
-        </div>
 
-        <div id="allCards" class="cards-grid"></div>
+          <div class="cards-db-toolbar">
+            <div id="cardsSummary" class="cards-summary"></div>
 
-        <div id="pagination" class="pagination pagination-pro"></div>
-      </section>
+            <div class="cards-db-toolbar-right">
+              <div class="view-toggle" role="tablist" aria-label="视图切换">
+                <button id="cardViewBtn" type="button" class="view-btn active">卡片视图</button>
+                <button id="listViewBtn" type="button" class="view-btn">列表视图</button>
+              </div>
+
+              <label class="page-size-wrap">
+                每页显示
+                <select id="pageSizeSelect">
+                  <option value="20">20</option>
+                  <option value="50">50</option>
+                </select>
+                条
+              </label>
+            </div>
+          </div>
+
+          <div id="activeFilterChips" class="active-filter-chips"></div>
+
+          <div id="allCards" class="cards-results cards-grid"></div>
+
+          <div id="pagination" class="pagination pagination-pro"></div>
+        </section>
+      </div>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
