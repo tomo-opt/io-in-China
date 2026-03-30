@@ -124,13 +124,13 @@ function renderMultiSelectBlock({ title, key, mountEl, stateObj, prefix }) {
           <div class="multi-select-options-list">
             ${options.map((option) => `
               <label class="multi-select-option multi-select-option-compact">
-                <span class="multi-select-option-text">${escapeHtml(option)}</span>
                 <input
                   type="checkbox"
                   data-ms-option="${prefix}:${key}"
                   value="${escapeHtml(option)}"
                   ${selectedSet.has(option) ? "checked" : ""}
                 />
+                <span class="multi-select-option-text" title="${escapeHtml(option)}">${escapeHtml(option)}</span>
               </label>
             `).join("")}
           </div>
@@ -581,6 +581,23 @@ function applyDrawerFilters() {
   renderDrawerCardsList(result);
 }
 
+function renderDrawerCardsList(list) {
+  const listEl = document.getElementById("drawerCardsList");
+  if (!listEl) return;
+
+  listEl.innerHTML = "";
+
+  if (!list.length) {
+    const empty = document.createElement("div");
+    empty.className = "card";
+    empty.innerHTML = `<div class="meta">当前筛选条件下暂无机构。</div>`;
+    listEl.appendChild(empty);
+    return;
+  }
+
+  list.forEach((item) => listEl.appendChild(renderCard(item)));
+}
+
 function bindDrawerFilterEvents() {
   const search = document.getElementById("drawerSearchInput");
   const resetBtn = document.getElementById("drawerResetBtn");
@@ -673,7 +690,7 @@ function openDrawer(city, list) {
       </div>
     </div>
 
-    <div id="drawerCardsList" style="display:grid; gap:10px; padding:12px;"></div>
+    <div id="drawerCardsList" style="display:grid; gap:10px; padding:12px; align-content:start;"></div>
   `;
 
   renderDrawerFilters();
