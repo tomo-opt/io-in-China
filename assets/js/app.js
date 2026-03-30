@@ -103,12 +103,13 @@ function renderMultiSelectBlock({ title, key, mountEl, stateObj, prefix }) {
   const options = stateObj.options[key] || [];
   const selectedSet = stateObj.selected[key];
   const isOpen = stateObj.openKey === key;
+  const compactClass = prefix === "map" || prefix === "drawer" ? "multi-select-compact" : "";
 
   mountEl.innerHTML = `
     <div class="filter-group">
       <div class="filter-group-label">${title}</div>
 
-      <div class="multi-select ${isOpen ? "open" : ""}" data-ms-prefix="${prefix}" data-ms-key="${key}">
+      <div class="multi-select ${compactClass} ${isOpen ? "open" : ""}" data-ms-prefix="${prefix}" data-ms-key="${key}">
         <button type="button" class="multi-select-trigger" data-ms-trigger="${prefix}:${key}">
           <span>${escapeHtml(getSelectedSummary(stateObj, key))}</span>
           <span class="multi-select-caret">▾</span>
@@ -120,17 +121,19 @@ function renderMultiSelectBlock({ title, key, mountEl, stateObj, prefix }) {
             <button type="button" class="multi-select-action" data-ms-clear="${prefix}:${key}">清空</button>
           </div>
 
-          ${options.map((option) => `
-            <label class="multi-select-option">
-              <input
-                type="checkbox"
-                data-ms-option="${prefix}:${key}"
-                value="${escapeHtml(option)}"
-                ${selectedSet.has(option) ? "checked" : ""}
-              />
-              <span>${escapeHtml(option)}</span>
-            </label>
-          `).join("")}
+          <div class="multi-select-options-list">
+            ${options.map((option) => `
+              <label class="multi-select-option multi-select-option-compact">
+                <span class="multi-select-option-text">${escapeHtml(option)}</span>
+                <input
+                  type="checkbox"
+                  data-ms-option="${prefix}:${key}"
+                  value="${escapeHtml(option)}"
+                  ${selectedSet.has(option) ? "checked" : ""}
+                />
+              </label>
+            `).join("")}
+          </div>
         </div>
       </div>
     </div>
@@ -524,10 +527,12 @@ function bindDrawerFilterPanelEvents() {
     input.onchange = () => {
       const key = input.getAttribute("data-ms-option").split(":")[1];
       const value = input.value;
+
       if (input.checked) drawerFilterState.selected[key].add(value);
       else drawerFilterState.selected[key].delete(value);
-      applyDrawerFilters();
+
       renderDrawerFilters();
+      requestAnimationFrame(() => applyDrawerFilters());
     };
   });
 
@@ -536,8 +541,9 @@ function bindDrawerFilterPanelEvents() {
       e.stopPropagation();
       const key = btn.getAttribute("data-ms-all").split(":")[1];
       setAllSelected(drawerFilterState, key);
-      applyDrawerFilters();
+
       renderDrawerFilters();
+      requestAnimationFrame(() => applyDrawerFilters());
     };
   });
 
@@ -546,8 +552,9 @@ function bindDrawerFilterPanelEvents() {
       e.stopPropagation();
       const key = btn.getAttribute("data-ms-clear").split(":")[1];
       clearSelected(drawerFilterState, key);
-      applyDrawerFilters();
+
       renderDrawerFilters();
+      requestAnimationFrame(() => applyDrawerFilters());
     };
   });
 }
@@ -1378,10 +1385,12 @@ function bindMapFilterPanelEvents() {
     input.onchange = () => {
       const key = input.getAttribute("data-ms-option").split(":")[1];
       const value = input.value;
+
       if (input.checked) mapFilterState.selected[key].add(value);
       else mapFilterState.selected[key].delete(value);
-      applyFilters();
+
       updateFilterOptions();
+      requestAnimationFrame(() => applyFilters());
     };
   });
 
@@ -1390,8 +1399,9 @@ function bindMapFilterPanelEvents() {
       e.stopPropagation();
       const key = btn.getAttribute("data-ms-all").split(":")[1];
       setAllSelected(mapFilterState, key);
-      applyFilters();
+
       updateFilterOptions();
+      requestAnimationFrame(() => applyFilters());
     };
   });
 
@@ -1400,8 +1410,9 @@ function bindMapFilterPanelEvents() {
       e.stopPropagation();
       const key = btn.getAttribute("data-ms-clear").split(":")[1];
       clearSelected(mapFilterState, key);
-      applyFilters();
+
       updateFilterOptions();
+      requestAnimationFrame(() => applyFilters());
     };
   });
 }
