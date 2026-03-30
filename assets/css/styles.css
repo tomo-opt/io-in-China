@@ -1211,21 +1211,53 @@ body.calibration-mode .map-image-stage {
   gap: 2px;
 }
 
-.multi-select-option-compact {
-  display: grid;
-  grid-template-columns: 18px minmax(0, 1fr);
+/* 关键修复：优先级高于 .filters label，强制变成单行左对齐 */
+.filters .multi-select-option-compact,
+.filters-multiselect .multi-select-option-compact,
+.filters-multiselect-drawer .multi-select-option-compact,
+.drawer-filter-shell .multi-select-option-compact {
+  display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 10px;
+  justify-content: flex-start;
+  gap: 8px;
   padding: 8px 10px;
+  margin: 0;
+  width: 100%;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  border-radius: 8px;
+  text-align: left;
 }
 
-.multi-select-option-compact input {
+.filters .multi-select-option-compact:hover,
+.filters-multiselect .multi-select-option-compact:hover,
+.filters-multiselect-drawer .multi-select-option-compact:hover,
+.drawer-filter-shell .multi-select-option-compact:hover {
+  background: #f5f8fd;
+}
+
+/* 关键修复：checkbox 固定在最左边 */
+.filters .multi-select-option-compact input,
+.filters-multiselect .multi-select-option-compact input,
+.filters-multiselect-drawer .multi-select-option-compact input,
+.drawer-filter-shell .multi-select-option-compact input {
+  order: 1;
+  flex: 0 0 auto;
   margin: 0;
   width: 14px;
   height: 14px;
 }
 
-.multi-select-option-text {
+/* 关键修复：文字紧跟 checkbox，在同一行 */
+.filters .multi-select-option-text,
+.filters-multiselect .multi-select-option-text,
+.filters-multiselect-drawer .multi-select-option-text,
+.drawer-filter-shell .multi-select-option-text {
+  order: 2;
+  flex: 1 1 auto;
   min-width: 0;
   line-height: 1.45;
   color: var(--text);
@@ -1233,14 +1265,22 @@ body.calibration-mode .map-image-stage {
   overflow-x: auto;
   overflow-y: hidden;
   display: block;
+  text-align: left;
+  word-break: normal;
   scrollbar-width: thin;
 }
 
-.multi-select-option-text::-webkit-scrollbar {
+.filters .multi-select-option-text::-webkit-scrollbar,
+.filters-multiselect .multi-select-option-text::-webkit-scrollbar,
+.filters-multiselect-drawer .multi-select-option-text::-webkit-scrollbar,
+.drawer-filter-shell .multi-select-option-text::-webkit-scrollbar {
   height: 6px;
 }
 
-.multi-select-option-text::-webkit-scrollbar-thumb {
+.filters .multi-select-option-text::-webkit-scrollbar-thumb,
+.filters-multiselect .multi-select-option-text::-webkit-scrollbar-thumb,
+.filters-multiselect-drawer .multi-select-option-text::-webkit-scrollbar-thumb,
+.drawer-filter-shell .multi-select-option-text::-webkit-scrollbar-thumb {
   background: #c7d4e8;
   border-radius: 999px;
 }
@@ -1271,11 +1311,6 @@ body.calibration-mode .map-image-stage {
   max-height: 180px;
 }
 
-.drawer-filter-shell .multi-select-option-compact {
-  grid-template-columns: 18px minmax(0, 1fr);
-  padding: 7px 8px;
-}
-
 @media (max-width: 768px) {
   .search-panel .multi-select-compact .multi-select-panel {
     max-height: 180px;
@@ -1285,12 +1320,18 @@ body.calibration-mode .map-image-stage {
     max-height: 160px;
   }
 
-  .multi-select-option-compact {
-    grid-template-columns: 18px minmax(0, 1fr);
+  .filters .multi-select-option-compact,
+  .filters-multiselect .multi-select-option-compact,
+  .filters-multiselect-drawer .multi-select-option-compact,
+  .drawer-filter-shell .multi-select-option-compact {
+    gap: 8px;
     padding: 7px 8px;
   }
 
-  .multi-select-option-text {
+  .filters .multi-select-option-text,
+  .filters-multiselect .multi-select-option-text,
+  .filters-multiselect-drawer .multi-select-option-text,
+  .drawer-filter-shell .multi-select-option-text {
     font-size: 12px;
   }
 }
