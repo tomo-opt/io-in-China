@@ -1,37 +1,64 @@
 const CSV_PATHS = ["data/io_orgs.csv"];
 
+const FILTER_META = [
+  { key: "attr", title: "属性", mountId: "filterAttr" },
+  { key: "cate", title: "行动领域", mountId: "filterCategory" },
+  { key: "year", title: "成立年份", mountId: "filterYear" },
+  { key: "city", title: "所在城市", mountId: "filterCity" }
+];
+
+const CATEGORY_COLOR_MAP = {
+  "产业发展、制造业与行业治理": "#8b5cf6",
+  "城市、区域与基础设施可持续发展": "#0f766e",
+  "创新创业与科技转化": "#2563eb",
+  "公共卫生、医学与生命科学": "#dc2626",
+  "公共政策、治理与能力建设": "#475569",
+  "国际法、仲裁与规则治理": "#7c3aed",
+  "国际交流、公共外交与民间合作": "#ec4899",
+  "国际经贸合作与投资促进": "#d97706",
+  "环境、气候与可持续发展": "#16a34a",
+  "教育、人才与能力建设": "#3b82f6",
+  "金融体系、治理与发展融资": "#b45309",
+  "科学研究与学术合作网络": "#6366f1",
+  "农业、食品与乡村可持续发展": "#65a30d",
+  "社会服务、公益慈善与包容性发展": "#14b8a6",
+  "数字技术、信息治理与网络安全": "#4f46e5",
+  "文化、体育与民间交流": "#db2777",
+  "物流、交通运输与供应链体系": "#0891b2"
+};
+
 const root = document.getElementById("allCards");
 const summaryEl = document.getElementById("cardsSummary");
 const paginationEl = document.getElementById("pagination");
 const totalCountHeroEl = document.getElementById("totalCountHero");
+const activeFilterChipsEl = document.getElementById("activeFilterChips");
 
 const searchInput = document.getElementById("searchInput");
 const resetBtn = document.getElementById("resetBtn");
-const attrFilter = document.getElementById("attrFilter");
-const categoryFilter = document.getElementById("categoryFilter");
-const yearFilter = document.getElementById("yearFilter");
-const cityFilter = document.getElementById("cityFilter");
 const pageSizeSelect = document.getElementById("pageSizeSelect");
+const cardViewBtn = document.getElementById("cardViewBtn");
+const listViewBtn = document.getElementById("listViewBtn");
 
 let rawData = [];
 let filteredData = [];
 let currentPage = 1;
-let pageSize = 20;
 
-const CATEGORY_COLOR_MAP = {
-  "环境、气候与可持续发展": "#2e9f6b",
-  "教育、人才与能力建设": "#3e8ef7",
-  "卫生与公共健康": "#e56b6f",
-  "经济、贸易与投资": "#d4a017",
-  "科技、数字治理与人工智能": "#7b61ff",
-  "社会治理与公共政策": "#5b7cfa",
-  "人权、包容与社会发展": "#a855f7",
-  "文化、传播与交流": "#ec4899",
-  "农业、粮食与乡村发展": "#65a30d",
-  "能源、基础设施与工业发展": "#0f766e",
-  "法律、司法与争端解决": "#475569",
-  "青年、性别与社区发展": "#f97316",
-  "慈善、公益与志愿行动": "#14b8a6"
+const state = {
+  pageSize: 20,
+  viewMode: "card",
+  openFilterKey: null,
+  selected: {
+    attr: new Set(),
+    cate: new Set(),
+    year: new Set(),
+    city: new Set()
+  },
+  options: {
+    attr: [],
+    cate: [],
+    year: [],
+    city: []
+  }
 };
 
 function getField(row, keys) {
@@ -80,9 +107,9 @@ function getCardData(row) {
   };
 }
 
-function deriveCity(cardData) {
-  if (cardData.city) return cardData.city;
-  const loc = cardData.loc || "";
+function deriveCity(item) {
+  if (item.city) return item.city;
+  const loc = item.loc || "";
   if (!loc) return "";
   const parts = loc.split(/[-/／,，|｜\s]+/).filter(Boolean);
   if (!parts.length) return loc;
@@ -97,8 +124,218 @@ function buildSearchText(row) {
 }
 
 function getCategoryColor(category) {
-  if (!category) return "#3e8ef7";
-  return CATEGORY_COLOR_MAP[category] || "#3e8ef7";
+  const key = String(category || "").trim();
+  return CATEGORY_COLOR_MAP[key] || "#3e8ef7";
+}
+
+function sortByChineseName(rows) {
+  return [...rows].sort((a, b) => {
+    const aName = getField(a, ["中文名", "机构中文名", "name_zh"]) || "";
+    const bName = getField(b, ["中文名", "机构中文名", "name_zh"]) || "";
+    return aName.localeCompare(bName, "zh-CN-u-co-pinyin");
+  });
+}
+
+function uniqueSortedValues(values, type = "text") {
+  const arr = [...new Set(values.map((v) => String(v || "").trim()).filter(Boolean))];
+  if (type === "year") return arr.sort((a, b) => Number(a) - Number(b));
+  return arr.sort((a, b) => a.localeCompare(b, "zh-CN-u-co-pinyin"));
+}
+
+function parseCsv(path) {
+  return new Promise((resolve, reject) => {
+    Papa.parse(path, {
+      download: true,
+      header: true,
+      skipEmptyLines: true,
+      complete: resolve,
+      error: reject
+    });
+  });
+}
+
+function buildFilterOptions() {
+  const rows = rawData.map((row) => {
+    const item = getCardData(row);
+    return {
+      attr: item.attr,
+      cate: item.cate,
+      year: item.year,
+      city: deriveCity(item)
+    };
+  });
+
+  state.options.attr = uniqueSortedValues(rows.map((i) => i.attr));
+  state.options.cate = uniqueSortedValues(rows.map((i) => i.cate));
+  state.options.year = uniqueSortedValues(rows.map((i) => i.year), "year");
+  state.options.city = uniqueSortedValues(rows.map((i) => i.city));
+}
+
+function getFilterButtonText(key) {
+  const count = state.selected[key].size;
+  if (count === 0) return "全部";
+  if (count === 1) return [...state.selected[key]][0];
+  return `已选 ${count} 项`;
+}
+
+function renderFilterBlock(meta) {
+  const mount = document.getElementById(meta.mountId);
+  if (!mount) return;
+
+  const options = state.options[meta.key] || [];
+  const selectedSet = state.selected[meta.key];
+  const isOpen = state.openFilterKey === meta.key;
+
+  mount.innerHTML = `
+    <div class="filter-group">
+      <div class="filter-group-label">${meta.title}</div>
+      <div class="multi-select ${isOpen ? "open" : ""}" data-filter-key="${meta.key}">
+        <button type="button" class="multi-select-trigger" data-filter-trigger="${meta.key}">
+          <span>${escapeHtml(getFilterButtonText(meta.key))}</span>
+          <span class="multi-select-caret">▾</span>
+        </button>
+
+        <div class="multi-select-panel">
+          ${options.map((option) => `
+            <label class="multi-select-option">
+              <input
+                type="checkbox"
+                data-filter-option="${meta.key}"
+                value="${escapeHtml(option)}"
+                ${selectedSet.has(option) ? "checked" : ""}
+              />
+              <span>${escapeHtml(option)}</span>
+            </label>
+          `).join("")}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderAllFilters() {
+  FILTER_META.forEach(renderFilterBlock);
+
+  document.querySelectorAll("[data-filter-trigger]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const key = btn.getAttribute("data-filter-trigger");
+      state.openFilterKey = state.openFilterKey === key ? null : key;
+      renderAllFilters();
+    });
+  });
+
+  document.querySelectorAll("[data-filter-option]").forEach((input) => {
+    input.addEventListener("change", () => {
+      const key = input.getAttribute("data-filter-option");
+      const value = input.value;
+
+      if (input.checked) {
+        state.selected[key].add(value);
+      } else {
+        state.selected[key].delete(value);
+      }
+
+      currentPage = 1;
+      filterData();
+      renderAllFilters();
+      render();
+    });
+  });
+}
+
+function renderActiveFilterChips() {
+  const chips = [];
+
+  FILTER_META.forEach((meta) => {
+    [...state.selected[meta.key]].forEach((value) => {
+      chips.push(`
+        <button
+          type="button"
+          class="filter-chip"
+          data-chip-key="${meta.key}"
+          data-chip-value="${escapeHtml(value)}"
+        >
+          <span class="filter-chip-label">${escapeHtml(meta.title)}：</span>
+          <span>${escapeHtml(value)}</span>
+          <span class="filter-chip-remove">×</span>
+        </button>
+      `);
+    });
+  });
+
+  activeFilterChipsEl.innerHTML = chips.length
+    ? chips.join("")
+    : `<div class="filter-chip-empty">当前未设置筛选条件</div>`;
+
+  activeFilterChipsEl.querySelectorAll("[data-chip-key]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const key = btn.getAttribute("data-chip-key");
+      const value = btn.getAttribute("data-chip-value");
+      state.selected[key].delete(value);
+      currentPage = 1;
+      filterData();
+      renderAllFilters();
+      render();
+    });
+  });
+}
+
+function filterMatch(set, value) {
+  if (!set || set.size === 0) return true;
+  return set.has(String(value || "").trim());
+}
+
+function filterData() {
+  const keyword = searchInput.value.trim().toLowerCase();
+
+  filteredData = rawData.filter((row) => {
+    const item = getCardData(row);
+    const rowCity = deriveCity(item);
+
+    const matchKeyword = !keyword || buildSearchText(row).includes(keyword);
+    const matchAttr = filterMatch(state.selected.attr, item.attr);
+    const matchCate = filterMatch(state.selected.cate, item.cate);
+    const matchYear = filterMatch(state.selected.year, item.year);
+    const matchCity = filterMatch(state.selected.city, rowCity);
+
+    return matchKeyword && matchAttr && matchCate && matchYear && matchCity;
+  });
+}
+
+function getTotalPages() {
+  return Math.max(1, Math.ceil(filteredData.length / state.pageSize));
+}
+
+function getCurrentRange() {
+  if (!filteredData.length) return { start: 0, end: 0 };
+  const start = (currentPage - 1) * state.pageSize + 1;
+  const end = Math.min(currentPage * state.pageSize, filteredData.length);
+  return { start, end };
+}
+
+function renderTotalHero() {
+  if (!totalCountHeroEl) return;
+  totalCountHeroEl.textContent = rawData.length.toLocaleString("zh-CN");
+}
+
+function renderSummary() {
+  const total = rawData.length;
+  const current = filteredData.length;
+  const totalPages = getTotalPages();
+  const { start, end } = getCurrentRange();
+
+  summaryEl.innerHTML = `
+    <div class="cards-summary-main">
+      共 <strong>${current}</strong> 家机构
+      <span class="summary-divider">|</span>
+      全部数据 <strong>${total}</strong> 家
+      <span class="summary-divider">|</span>
+      当前展示 <strong>${start}-${end}</strong>
+      <span class="summary-divider">|</span>
+      当前第 <strong>${currentPage}</strong> / <strong>${totalPages}</strong> 页
+    </div>
+  `;
 }
 
 function createCard(row) {
@@ -140,138 +377,71 @@ function createCard(row) {
   return article;
 }
 
-function parseCsv(path) {
-  return new Promise((resolve, reject) => {
-    Papa.parse(path, {
-      download: true,
-      header: true,
-      skipEmptyLines: true,
-      complete: resolve,
-      error: reject
-    });
-  });
+function renderCardView(rows) {
+  root.className = "cards-results cards-grid";
+  root.innerHTML = "";
+  rows.forEach((row) => root.appendChild(createCard(row)));
 }
 
-function sortByChineseName(rows) {
-  return [...rows].sort((a, b) => {
-    const aName = getField(a, ["中文名", "机构中文名", "name_zh"]) || "";
-    const bName = getField(b, ["中文名", "机构中文名", "name_zh"]) || "";
-    return aName.localeCompare(bName, "zh-CN-u-co-pinyin");
-  });
-}
-
-function uniqueSortedValues(values, type = "text") {
-  const arr = [...new Set(values.map((v) => String(v || "").trim()).filter(Boolean))];
-  if (type === "year") return arr.sort((a, b) => Number(a) - Number(b));
-  return arr.sort((a, b) => a.localeCompare(b, "zh-CN-u-co-pinyin"));
-}
-
-function fillSelect(selectEl, values) {
-  const currentFirst = selectEl.querySelector('option[value=""]');
-  selectEl.innerHTML = "";
-  if (currentFirst) {
-    selectEl.appendChild(currentFirst);
-  } else {
-    const option = document.createElement("option");
-    option.value = "";
-    option.textContent = "全部";
-    selectEl.appendChild(option);
-  }
-
-  values.forEach((value) => {
-    const option = document.createElement("option");
-    option.value = value;
-    option.textContent = value;
-    selectEl.appendChild(option);
-  });
-}
-
-function initFilters() {
-  const cardRows = rawData.map((row) => {
-    const item = getCardData(row);
-    return {
-      attr: item.attr,
-      cate: item.cate,
-      year: item.year,
-      city: deriveCity(item)
-    };
-  });
-
-  fillSelect(attrFilter, uniqueSortedValues(cardRows.map((i) => i.attr)));
-  fillSelect(categoryFilter, uniqueSortedValues(cardRows.map((i) => i.cate)));
-  fillSelect(yearFilter, uniqueSortedValues(cardRows.map((i) => i.year), "year"));
-  fillSelect(cityFilter, uniqueSortedValues(cardRows.map((i) => i.city)));
-}
-
-function filterData() {
-  const keyword = searchInput.value.trim().toLowerCase();
-  const attr = attrFilter.value;
-  const cate = categoryFilter.value;
-  const year = yearFilter.value;
-  const city = cityFilter.value;
-
-  filteredData = rawData.filter((row) => {
-    const item = getCardData(row);
-    const rowCity = deriveCity(item);
-
-    const matchKeyword = !keyword || buildSearchText(row).includes(keyword);
-    const matchAttr = !attr || item.attr === attr;
-    const matchCate = !cate || item.cate === cate;
-    const matchYear = !year || item.year === year;
-    const matchCity = !city || rowCity === city;
-
-    return matchKeyword && matchAttr && matchCate && matchYear && matchCity;
-  });
-}
-
-function getTotalPages() {
-  return Math.max(1, Math.ceil(filteredData.length / pageSize));
-}
-
-function getCurrentRange() {
-  if (!filteredData.length) return { start: 0, end: 0 };
-  const start = (currentPage - 1) * pageSize + 1;
-  const end = Math.min(currentPage * pageSize, filteredData.length);
-  return { start, end };
-}
-
-function renderTotalHero() {
-  if (!totalCountHeroEl) return;
-  totalCountHeroEl.textContent = rawData.length.toLocaleString("zh-CN");
-}
-
-function renderSummary() {
-  const total = rawData.length;
-  const current = filteredData.length;
-  const totalPages = getTotalPages();
-  const { start, end } = getCurrentRange();
-
-  summaryEl.innerHTML = `
-    <div class="cards-summary-main">
-      共 <strong>${current}</strong> 家机构
-      <span class="summary-divider">|</span>
-      全部数据 <strong>${total}</strong> 家
-      <span class="summary-divider">|</span>
-      当前展示 <strong>${start}-${end}</strong>
-      <span class="summary-divider">|</span>
-      当前第 <strong>${currentPage}</strong> / <strong>${totalPages}</strong> 页
+function renderListView(rows) {
+  root.className = "cards-results list-view";
+  root.innerHTML = `
+    <div class="list-table">
+      <div class="list-table-header">
+        <div>机构名称</div>
+        <div>属性</div>
+        <div>行动领域</div>
+        <div>所在地</div>
+        <div>成立年份</div>
+        <div>官网</div>
+      </div>
+      <div id="listTableBody"></div>
     </div>
   `;
+
+  const body = document.getElementById("listTableBody");
+
+  rows.forEach((row) => {
+    const item = getCardData(row);
+    const color = getCategoryColor(item.cate);
+
+    const line = document.createElement("div");
+    line.className = "list-table-row";
+    line.style.setProperty("--row-accent", color);
+
+    line.innerHTML = `
+      <div class="list-col-name">
+        <div class="list-name-cn">${escapeHtml(item.cn || "未命名机构")}</div>
+        <div class="list-name-en">${escapeHtml(item.en || "-")}</div>
+      </div>
+      <div>${escapeHtml(item.attr || "暂无")}</div>
+      <div><span class="list-cate-pill" style="--pill-accent:${color}">${escapeHtml(item.cate || "未分类")}</span></div>
+      <div>${escapeHtml(item.loc || "暂无")}</div>
+      <div>${escapeHtml(item.year || "暂无")}</div>
+      <div>${formatLink(item.website)}</div>
+    `;
+    body.appendChild(line);
+  });
 }
 
-function renderCards() {
+function renderResults() {
   root.innerHTML = "";
 
   if (!filteredData.length) {
+    root.className = "cards-results cards-grid";
     root.innerHTML = `<div class="cards-empty">未找到符合条件的机构，请调整检索词或筛选条件。</div>`;
     return;
   }
 
-  const start = (currentPage - 1) * pageSize;
-  const end = start + pageSize;
+  const start = (currentPage - 1) * state.pageSize;
+  const end = start + state.pageSize;
   const pageRows = filteredData.slice(start, end);
 
-  pageRows.forEach((row) => root.appendChild(createCard(row)));
+  if (state.viewMode === "list") {
+    renderListView(pageRows);
+  } else {
+    renderCardView(pageRows);
+  }
 }
 
 function createPageButton(label, page, { active = false, disabled = false } = {}) {
@@ -303,25 +473,18 @@ function renderPagination() {
   left.className = "pagination-left";
 
   left.appendChild(createPageButton("首页", 1, { disabled: currentPage === 1 }));
-  left.appendChild(
-    createPageButton("上一页", Math.max(1, currentPage - 1), {
-      disabled: currentPage === 1
-    })
-  );
+  left.appendChild(createPageButton("上一页", Math.max(1, currentPage - 1), { disabled: currentPage === 1 }));
 
   const visiblePages = [];
   if (totalPages <= 9) {
     for (let i = 1; i <= totalPages; i += 1) visiblePages.push(i);
   } else {
     visiblePages.push(1);
-
     const start = Math.max(2, currentPage - 2);
     const end = Math.min(totalPages - 1, currentPage + 2);
-
     if (start > 2) visiblePages.push("...");
     for (let i = start; i <= end; i += 1) visiblePages.push(i);
     if (end < totalPages - 1) visiblePages.push("...");
-
     visiblePages.push(totalPages);
   }
 
@@ -332,24 +495,12 @@ function renderPagination() {
       span.textContent = "...";
       left.appendChild(span);
     } else {
-      left.appendChild(
-        createPageButton(String(item), item, {
-          active: item === currentPage
-        })
-      );
+      left.appendChild(createPageButton(String(item), item, { active: item === currentPage }));
     }
   });
 
-  left.appendChild(
-    createPageButton("下一页", Math.min(totalPages, currentPage + 1), {
-      disabled: currentPage === totalPages
-    })
-  );
-  left.appendChild(
-    createPageButton("末页", totalPages, {
-      disabled: currentPage === totalPages
-    })
-  );
+  left.appendChild(createPageButton("下一页", Math.min(totalPages, currentPage + 1), { disabled: currentPage === totalPages }));
+  left.appendChild(createPageButton("末页", totalPages, { disabled: currentPage === totalPages }));
 
   const right = document.createElement("div");
   right.className = "pagination-right";
@@ -374,19 +525,16 @@ function renderPagination() {
   jumpBtn.addEventListener("click", () => {
     const input = label.querySelector("#pageJumpInput");
     const target = Number(input.value);
-
     if (!target || target < 1 || target > totalPages) {
       input.value = currentPage;
       return;
     }
-
     currentPage = target;
     render();
     window.scrollTo({ top: 0, behavior: "smooth" });
   });
 
-  const input = label.querySelector("#pageJumpInput");
-  input.addEventListener("keydown", (e) => {
+  label.querySelector("#pageJumpInput").addEventListener("keydown", (e) => {
     if (e.key === "Enter") jumpBtn.click();
   });
 
@@ -405,40 +553,59 @@ function render() {
 
   renderTotalHero();
   renderSummary();
-  renderCards();
+  renderActiveFilterChips();
+  renderResults();
   renderPagination();
+
+  cardViewBtn.classList.toggle("active", state.viewMode === "card");
+  listViewBtn.classList.toggle("active", state.viewMode === "list");
 }
 
-function applyFiltersAndRender(resetToFirstPage = true) {
-  if (resetToFirstPage) currentPage = 1;
+function resetAllFilters() {
+  searchInput.value = "";
+  state.openFilterKey = null;
+  state.selected.attr.clear();
+  state.selected.cate.clear();
+  state.selected.year.clear();
+  state.selected.city.clear();
+  currentPage = 1;
   filterData();
+  renderAllFilters();
   render();
 }
 
 function bindEvents() {
-  searchInput.addEventListener("input", () => applyFiltersAndRender(true));
-  attrFilter.addEventListener("change", () => applyFiltersAndRender(true));
-  categoryFilter.addEventListener("change", () => applyFiltersAndRender(true));
-  yearFilter.addEventListener("change", () => applyFiltersAndRender(true));
-  cityFilter.addEventListener("change", () => applyFiltersAndRender(true));
+  searchInput.addEventListener("input", () => {
+    currentPage = 1;
+    filterData();
+    render();
+  });
+
+  resetBtn.addEventListener("click", resetAllFilters);
 
   pageSizeSelect.addEventListener("change", () => {
-    pageSize = Number(pageSizeSelect.value) || 20;
+    state.pageSize = Number(pageSizeSelect.value) || 20;
     currentPage = 1;
     render();
   });
 
-  resetBtn.addEventListener("click", () => {
-    searchInput.value = "";
-    attrFilter.value = "";
-    categoryFilter.value = "";
-    yearFilter.value = "";
-    cityFilter.value = "";
-    pageSizeSelect.value = "20";
+  cardViewBtn.addEventListener("click", () => {
+    state.viewMode = "card";
+    render();
+  });
 
-    pageSize = 20;
-    currentPage = 1;
-    applyFiltersAndRender(false);
+  listViewBtn.addEventListener("click", () => {
+    state.viewMode = "list";
+    render();
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".multi-select")) {
+      if (state.openFilterKey !== null) {
+        state.openFilterKey = null;
+        renderAllFilters();
+      }
+    }
   });
 }
 
@@ -448,8 +615,9 @@ async function loadData() {
       const res = await parseCsv(path);
       if (res?.data?.length) {
         rawData = sortByChineseName(res.data);
-        initFilters();
+        buildFilterOptions();
         filteredData = [...rawData];
+        renderAllFilters();
         bindEvents();
         render();
         return;
@@ -459,6 +627,7 @@ async function loadData() {
     }
   }
 
+  root.className = "cards-results cards-grid";
   root.innerHTML = `
     <div class="cards-empty">
       数据文件加载失败。请检查 data/io_orgs.csv 是否存在，并确认 GitHub Pages 可直接访问该文件。
