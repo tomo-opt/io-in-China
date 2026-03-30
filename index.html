@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>在华国际组织百科</title>
+    <link rel="stylesheet" href="assets/css/styles.css" />
+  </head>
+  <body>
+    <header class="top-nav">
+      <div class="brand">IO in China</div>
+      <nav>
+        <a class="active" href="index.html">地图总览</a>
+        <a href="cards.html">机构卡片库</a>
+      </nav>
+    </header>
+
+    <main class="page-map">
+      <section class="search-panel" aria-label="搜索与筛选">
+        <div class="sidebar-card-title">关键词检索</div>
+        <div class="search-row">
+          <input
+            id="searchInput"
+            type="text"
+            placeholder="检索机构名、城市、属性、行动领域、官网等"
+          />
+          <button id="resetBtn" type="button">重置</button>
+        </div>
+
+        <div class="sidebar-search-tip">支持任意字段模糊检索</div>
+
+        <div class="search-panel-divider"></div>
+
+        <div class="sidebar-card-title">条件筛选</div>
+        <div class="filters filters-multiselect">
+          <div id="mapFilterAttr" class="filter-slot"></div>
+          <div id="mapFilterCategory" class="filter-slot"></div>
+          <div id="mapFilterYear" class="filter-slot"></div>
+          <div id="mapFilterCity" class="filter-slot"></div>
+        </div>
+
+        <div class="tag-hint">可用筛选变量：属性 / 行动领域 / 成立年份 / 所在城市；支持多选。</div>
+        <div id="searchResults" class="search-results hidden"></div>
+      </section>
+
+      <section class="map-wrapper">
+        <div id="mapImageStage" class="map-image-stage">
+          <img id="chinaMapImg" src="assets/maps/china-standard.png" alt="中华人民共和国标准地图底图" />
+          <div id="cityLayer" class="city-layer"></div>
+        </div>
+        <div class="map-note">图注：地图展示中华人民共和国范围底图；本页机构统计口径不含港澳台。</div>
+      </section>
+
+      <aside id="drawer" class="drawer">
+        <div class="drawer-header">
+          <h2 id="drawerTitle">点击地图城市查看机构</h2>
+          <button id="drawerClose" type="button">关闭</button>
+        </div>
+        <div id="cardsContainer" class="cards-container"></div>
+      </aside>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+    <script src="assets/js/app.js"></script>
+  </body>
+</html>
