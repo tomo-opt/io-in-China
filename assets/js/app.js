@@ -14,20 +14,141 @@ let mapReady = false;
 
 const ui = {
   searchInput: document.getElementById("searchInput"),
-  attrFilter: document.getElementById("attrFilter"),
-  categoryFilter: document.getElementById("categoryFilter"),
-  yearFilter: document.getElementById("yearFilter"),
-  cityFilter: document.getElementById("cityFilter"),
+  resetBtn: document.getElementById("resetBtn"),
+
+  mapFilterAttr: document.getElementById("mapFilterAttr"),
+  mapFilterCategory: document.getElementById("mapFilterCategory"),
+  mapFilterYear: document.getElementById("mapFilterYear"),
+  mapFilterCity: document.getElementById("mapFilterCity"),
+
   searchResults: document.getElementById("searchResults"),
   cardsContainer: document.getElementById("cardsContainer"),
   drawer: document.getElementById("drawer"),
   drawerTitle: document.getElementById("drawerTitle"),
-  cityLayer: document.getElementById("cityLayer"), // 图片地图模式用
-  chinaMapImg: document.getElementById("chinaMapImg"), // 图片底图（用于取像素坐标）
+  cityLayer: document.getElementById("cityLayer"),
+  chinaMapImg: document.getElementById("chinaMapImg"),
 };
 
 let records = [];
 let filtered = [];
+
+const MAP_FILTER_META = [
+  { key: "attr", title: "属性", mount: "mapFilterAttr" },
+  { key: "category1", title: "行动领域", mount: "mapFilterCategory" },
+  { key: "year", title: "成立年份", mount: "mapFilterYear" },
+  { key: "location", title: "所在城市", mount: "mapFilterCity" },
+];
+
+const mapFilterState = {
+  openKey: null,
+  selected: {
+    attr: new Set(),
+    category1: new Set(),
+    year: new Set(),
+    location: new Set(),
+  },
+  options: {
+    attr: [],
+    category1: [],
+    year: [],
+    location: [],
+  },
+};
+
+const drawerFilterState = {
+  openKey: null,
+  selected: {
+    attr: new Set(),
+    category1: new Set(),
+    year: new Set(),
+  },
+  options: {
+    attr: [],
+    category1: [],
+    year: [],
+  },
+};
+
+function escapeHtml(str) {
+  return String(str || "").replace(/[&<>"']/g, (m) => {
+    const map = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    };
+    return map[m];
+  });
+}
+
+function uniqueSortedValues(values, type = "text") {
+  const arr = [...new Set(values.map((v) => String(v || "").trim()).filter(Boolean))];
+  if (type === "year") return arr.sort((a, b) => Number(a) - Number(b));
+  return arr.sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
+}
+
+function getSelectedSummary(stateObj, key) {
+  const count = stateObj.selected[key].size;
+  const total = stateObj.options[key].length;
+  if (count === 0) return "全部";
+  if (count === total) return "已全选";
+  if (count === 1) return [...stateObj.selected[key]][0];
+  return `已选 ${count} 项`;
+}
+
+function renderMultiSelectBlock({ title, key, mountEl, stateObj, prefix }) {
+  if (!mountEl) return;
+
+  const options = stateObj.options[key] || [];
+  const selectedSet = stateObj.selected[key];
+  const isOpen = stateObj.openKey === key;
+
+  mountEl.innerHTML = `
+    <div class="filter-group">
+      <div class="filter-group-label">${title}</div>
+
+      <div class="multi-select ${isOpen ? "open" : ""}" data-ms-prefix="${prefix}" data-ms-key="${key}">
+        <button type="button" class="multi-select-trigger" data-ms-trigger="${prefix}:${key}">
+          <span>${escapeHtml(getSelectedSummary(stateObj, key))}</span>
+          <span class="multi-select-caret">▾</span>
+        </button>
+
+        <div class="multi-select-panel">
+          <div class="multi-select-actions">
+            <button type="button" class="multi-select-action" data-ms-all="${prefix}:${key}">全选</button>
+            <button type="button" class="multi-select-action" data-ms-clear="${prefix}:${key}">清空</button>
+          </div>
+
+          ${options.map((option) => `
+            <label class="multi-select-option">
+              <input
+                type="checkbox"
+                data-ms-option="${prefix}:${key}"
+                value="${escapeHtml(option)}"
+                ${selectedSet.has(option) ? "checked" : ""}
+              />
+              <span>${escapeHtml(option)}</span>
+            </label>
+          `).join("")}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function setAllSelected(stateObj, key) {
+  stateObj.selected[key] = new Set(stateObj.options[key]);
+}
+
+function clearSelected(stateObj, key) {
+  stateObj.selected[key].clear();
+}
+
+function matchesSelected(setObj, value) {
+  if (!setObj || setObj.size === 0) return true;
+  return setObj.has(String(value || "").trim());
+}
 
 /** 阈值配置 */
 const DOT_MIN = 8;
@@ -350,49 +471,99 @@ let currentDrawerState = {
   sourceList: [],
 };
 
-function buildDrawerSelectOptions(values) {
-  const sorted = [...new Set(values.filter(Boolean))].sort((a, b) =>
-    a.localeCompare(b, "zh-Hans-CN")
-  );
+function renderDrawerFilters() {
+  const mount = document.getElementById("drawerFilterControls");
+  if (!mount) return;
 
-  return [
-    `<option value="">全部</option>`,
-    ...sorted.map((v) => `<option value="${v}">${v}</option>`),
-  ].join("");
+  mount.innerHTML = `
+    <div class="filters filters-multiselect-drawer">
+      <div id="drawerFilterAttr" class="filter-slot"></div>
+      <div id="drawerFilterCategory" class="filter-slot"></div>
+      <div id="drawerFilterYear" class="filter-slot"></div>
+    </div>
+  `;
+
+  renderMultiSelectBlock({
+    title: "属性",
+    key: "attr",
+    mountEl: document.getElementById("drawerFilterAttr"),
+    stateObj: drawerFilterState,
+    prefix: "drawer",
+  });
+
+  renderMultiSelectBlock({
+    title: "行动领域",
+    key: "category1",
+    mountEl: document.getElementById("drawerFilterCategory"),
+    stateObj: drawerFilterState,
+    prefix: "drawer",
+  });
+
+  renderMultiSelectBlock({
+    title: "成立年份",
+    key: "year",
+    mountEl: document.getElementById("drawerFilterYear"),
+    stateObj: drawerFilterState,
+    prefix: "drawer",
+  });
+
+  bindDrawerFilterPanelEvents();
 }
 
-function renderDrawerCardsList(list) {
-  const listEl = document.getElementById("drawerCardsList");
-  if (!listEl) return;
+function bindDrawerFilterPanelEvents() {
+  document.querySelectorAll('[data-ms-trigger^="drawer:"]').forEach((btn) => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const key = btn.getAttribute("data-ms-trigger").split(":")[1];
+      drawerFilterState.openKey = drawerFilterState.openKey === key ? null : key;
+      renderDrawerFilters();
+    };
+  });
 
-  listEl.innerHTML = "";
+  document.querySelectorAll('[data-ms-option^="drawer:"]').forEach((input) => {
+    input.onchange = () => {
+      const key = input.getAttribute("data-ms-option").split(":")[1];
+      const value = input.value;
+      if (input.checked) drawerFilterState.selected[key].add(value);
+      else drawerFilterState.selected[key].delete(value);
+      applyDrawerFilters();
+      renderDrawerFilters();
+    };
+  });
 
-  if (!list.length) {
-    const empty = document.createElement("div");
-    empty.className = "card";
-    empty.innerHTML = `<div class="meta">当前筛选条件下暂无机构。</div>`;
-    listEl.appendChild(empty);
-    return;
-  }
+  document.querySelectorAll('[data-ms-all^="drawer:"]').forEach((btn) => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const key = btn.getAttribute("data-ms-all").split(":")[1];
+      setAllSelected(drawerFilterState, key);
+      applyDrawerFilters();
+      renderDrawerFilters();
+    };
+  });
 
-  list.forEach((item) => listEl.appendChild(renderCard(item)));
+  document.querySelectorAll('[data-ms-clear^="drawer:"]').forEach((btn) => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const key = btn.getAttribute("data-ms-clear").split(":")[1];
+      clearSelected(drawerFilterState, key);
+      applyDrawerFilters();
+      renderDrawerFilters();
+    };
+  });
 }
 
 function applyDrawerFilters() {
   const q = (document.getElementById("drawerSearchInput")?.value || "").trim().toLowerCase();
-  const attr = document.getElementById("drawerAttrFilter")?.value || "";
-  const category = document.getElementById("drawerCategoryFilter")?.value || "";
-  const year = document.getElementById("drawerYearFilter")?.value || "";
 
   const result = currentDrawerState.sourceList.filter((item) => {
-    const matchedSearch =
-      !q || Object.values(item).join(" ").toLowerCase().includes(q);
+    const matchedSearch = !q || Object.values(item).join(" ").toLowerCase().includes(q);
 
-    const matchedAttr = !attr || item.attr === attr;
-    const matchedCategory = !category || item.category1 === category;
-    const matchedYear = !year || item.year === year;
-
-    return matchedSearch && matchedAttr && matchedCategory && matchedYear;
+    return (
+      matchedSearch &&
+      matchesSelected(drawerFilterState.selected.attr, item.attr) &&
+      matchesSelected(drawerFilterState.selected.category1, item.category1) &&
+      matchesSelected(drawerFilterState.selected.year, item.year)
+    );
   });
 
   const countEl = document.getElementById("drawerFilterCount");
@@ -404,33 +575,24 @@ function applyDrawerFilters() {
 }
 
 function bindDrawerFilterEvents() {
-  const ids = [
-    "drawerSearchInput",
-    "drawerAttrFilter",
-    "drawerCategoryFilter",
-    "drawerYearFilter",
-  ];
-
-  ids.forEach((id) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.addEventListener("input", applyDrawerFilters);
-    el.addEventListener("change", applyDrawerFilters);
-  });
-
+  const search = document.getElementById("drawerSearchInput");
   const resetBtn = document.getElementById("drawerResetBtn");
+
+  if (search) {
+    search.addEventListener("input", applyDrawerFilters);
+  }
+
   if (resetBtn) {
     resetBtn.addEventListener("click", () => {
       const search = document.getElementById("drawerSearchInput");
-      const attr = document.getElementById("drawerAttrFilter");
-      const category = document.getElementById("drawerCategoryFilter");
-      const year = document.getElementById("drawerYearFilter");
-
       if (search) search.value = "";
-      if (attr) attr.value = "";
-      if (category) category.value = "";
-      if (year) year.value = "";
 
+      drawerFilterState.openKey = null;
+      drawerFilterState.selected.attr.clear();
+      drawerFilterState.selected.category1.clear();
+      drawerFilterState.selected.year.clear();
+
+      renderDrawerFilters();
       applyDrawerFilters();
     });
   }
@@ -442,15 +604,20 @@ function openDrawer(city, list) {
     sourceList: [...list],
   };
 
-  const attrOptions = buildDrawerSelectOptions(list.map((item) => item.attr));
-  const categoryOptions = buildDrawerSelectOptions(list.map((item) => item.category1));
-  const yearOptions = buildDrawerSelectOptions(list.map((item) => item.year));
+  drawerFilterState.openKey = null;
+  drawerFilterState.selected.attr.clear();
+  drawerFilterState.selected.category1.clear();
+  drawerFilterState.selected.year.clear();
+
+  drawerFilterState.options.attr = uniqueSortedValues(list.map((item) => item.attr));
+  drawerFilterState.options.category1 = uniqueSortedValues(list.map((item) => item.category1));
+  drawerFilterState.options.year = uniqueSortedValues(list.map((item) => item.year), "year");
 
   ui.drawer.classList.add("open");
   ui.drawerTitle.textContent = `${city}（${list.length}个机构）`;
 
   ui.cardsContainer.innerHTML = `
-    <div style="
+    <div class="drawer-filter-shell" style="
       position: sticky;
       top: 0;
       z-index: 2;
@@ -458,11 +625,12 @@ function openDrawer(city, list) {
       border-bottom: 1px solid #e5ebf3;
       padding: 12px;
     ">
+      <div class="sidebar-card-title">关键词检索</div>
       <div style="display:flex; gap:8px; align-items:center;">
         <input
           id="drawerSearchInput"
           type="text"
-          placeholder="在本城市机构中检索：机构名、属性、行动领域、官网、微信公众号等"
+          placeholder="检索机构名、属性、行动领域、官网等"
           style="
             flex:1;
             min-width:0;
@@ -486,28 +654,12 @@ function openDrawer(city, list) {
         >重置</button>
       </div>
 
-      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
-        <label style="flex:1 1 160px; font-size:12px; color:#61708a; display:flex; flex-direction:column; gap:6px;">
-          属性
-          <select id="drawerAttrFilter" style="padding:8px 10px; border:1px solid #d7dfeb; border-radius:10px; font-size:13px; background:#fff;">
-            ${attrOptions}
-          </select>
-        </label>
+      <div class="sidebar-search-tip" style="margin-top:8px;">支持任意字段模糊检索</div>
 
-        <label style="flex:1 1 160px; font-size:12px; color:#61708a; display:flex; flex-direction:column; gap:6px;">
-          行动领域
-          <select id="drawerCategoryFilter" style="padding:8px 10px; border:1px solid #d7dfeb; border-radius:10px; font-size:13px; background:#fff;">
-            ${categoryOptions}
-          </select>
-        </label>
+      <div style="height:1px;background:#e5ebf3;margin:12px 0;"></div>
 
-        <label style="flex:1 1 120px; font-size:12px; color:#61708a; display:flex; flex-direction:column; gap:6px;">
-          成立年份
-          <select id="drawerYearFilter" style="padding:8px 10px; border:1px solid #d7dfeb; border-radius:10px; font-size:13px; background:#fff;">
-            ${yearOptions}
-          </select>
-        </label>
-      </div>
+      <div class="sidebar-card-title">条件筛选</div>
+      <div id="drawerFilterControls"></div>
 
       <div id="drawerFilterCount" style="font-size:12px; color:#61708a; margin-top:8px;">
         当前筛选结果：${list.length} / ${list.length}
@@ -517,6 +669,7 @@ function openDrawer(city, list) {
     <div id="drawerCardsList" style="display:grid; gap:10px; padding:12px;"></div>
   `;
 
+  renderDrawerFilters();
   bindDrawerFilterEvents();
   applyDrawerFilters();
 }
@@ -1193,21 +1346,63 @@ function renderEchartsMap(grouped) {
 }
 
 function updateFilterOptions() {
-  const sets = {
-    attrFilter: new Set(records.map((r) => r.attr).filter(Boolean)),
-    categoryFilter: new Set(records.map((r) => r.category1).filter(Boolean)),
-    yearFilter: new Set(records.map((r) => r.year).filter(Boolean)),
-    cityFilter: new Set(records.map((r) => r.location).filter(Boolean)),
-  };
+  mapFilterState.options.attr = uniqueSortedValues(records.map((r) => r.attr));
+  mapFilterState.options.category1 = uniqueSortedValues(records.map((r) => r.category1));
+  mapFilterState.options.year = uniqueSortedValues(records.map((r) => r.year), "year");
+  mapFilterState.options.location = uniqueSortedValues(records.map((r) => r.location));
 
-  Object.entries(sets).forEach(([id, set]) => {
-    const sel = document.getElementById(id);
-    [...set].sort((a, b) => a.localeCompare(b, "zh-Hans-CN")).forEach((v) => {
-      const op = document.createElement("option");
-      op.value = v;
-      op.textContent = v;
-      sel.appendChild(op);
+  MAP_FILTER_META.forEach((meta) => {
+    renderMultiSelectBlock({
+      title: meta.title,
+      key: meta.key,
+      mountEl: ui[meta.mount],
+      stateObj: mapFilterState,
+      prefix: "map",
     });
+  });
+
+  bindMapFilterPanelEvents();
+}
+
+function bindMapFilterPanelEvents() {
+  document.querySelectorAll('[data-ms-trigger^="map:"]').forEach((btn) => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const key = btn.getAttribute("data-ms-trigger").split(":")[1];
+      mapFilterState.openKey = mapFilterState.openKey === key ? null : key;
+      updateFilterOptions();
+    };
+  });
+
+  document.querySelectorAll('[data-ms-option^="map:"]').forEach((input) => {
+    input.onchange = () => {
+      const key = input.getAttribute("data-ms-option").split(":")[1];
+      const value = input.value;
+      if (input.checked) mapFilterState.selected[key].add(value);
+      else mapFilterState.selected[key].delete(value);
+      applyFilters();
+      updateFilterOptions();
+    };
+  });
+
+  document.querySelectorAll('[data-ms-all^="map:"]').forEach((btn) => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const key = btn.getAttribute("data-ms-all").split(":")[1];
+      setAllSelected(mapFilterState, key);
+      applyFilters();
+      updateFilterOptions();
+    };
+  });
+
+  document.querySelectorAll('[data-ms-clear^="map:"]').forEach((btn) => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const key = btn.getAttribute("data-ms-clear").split(":")[1];
+      clearSelected(mapFilterState, key);
+      applyFilters();
+      updateFilterOptions();
+    };
   });
 }
 
@@ -1220,24 +1415,17 @@ function matchesSearch(item, q) {
 function applyFilters() {
   const q = ui.searchInput.value.trim();
 
-  filtered = records.filter(
-    (r) =>
-      (!ui.attrFilter.value || r.attr === ui.attrFilter.value) &&
-      (!ui.categoryFilter.value || r.category1 === ui.categoryFilter.value) &&
-      (!ui.yearFilter.value || r.year === ui.yearFilter.value) &&
-      (!ui.cityFilter.value || r.location === ui.cityFilter.value) &&
-      matchesSearch(r, q)
+  filtered = records.filter((r) =>
+    matchesSearch(r, q) &&
+    matchesSelected(mapFilterState.selected.attr, r.attr) &&
+    matchesSelected(mapFilterState.selected.category1, r.category1) &&
+    matchesSelected(mapFilterState.selected.year, r.year) &&
+    matchesSelected(mapFilterState.selected.location, r.location)
   );
 
   const grouped = groupByCity(filtered);
-
-  // 图片底图模式
   renderCityDots(grouped);
-
-  // ECharts地图模式（兜底）
   renderEchartsMap(grouped);
-
-  // 搜索浮层
   renderSearchResults(q ? filtered.slice(0, 20) : []);
 }
 
@@ -1507,19 +1695,37 @@ function bindEvents() {
   if (window.__ioMapEventsBound) return;
   window.__ioMapEventsBound = true;
 
-  [ui.searchInput, ui.attrFilter, ui.categoryFilter, ui.yearFilter, ui.cityFilter].forEach((el) =>
-    el.addEventListener("input", applyFilters)
-  );
+  ui.searchInput.addEventListener("input", applyFilters);
 
-  document.getElementById("resetBtn").addEventListener("click", () => {
+  ui.resetBtn.addEventListener("click", () => {
     ui.searchInput.value = "";
-    [ui.attrFilter, ui.categoryFilter, ui.yearFilter, ui.cityFilter].forEach((sel) => (sel.value = ""));
+
+    mapFilterState.openKey = null;
+    mapFilterState.selected.attr.clear();
+    mapFilterState.selected.category1.clear();
+    mapFilterState.selected.year.clear();
+    mapFilterState.selected.location.clear();
+
+    updateFilterOptions();
     applyFilters();
     resetImageView();
   });
 
   document.getElementById("drawerClose").addEventListener("click", () => {
     ui.drawer.classList.remove("open");
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".multi-select")) {
+      if (mapFilterState.openKey !== null) {
+        mapFilterState.openKey = null;
+        updateFilterOptions();
+      }
+      if (drawerFilterState.openKey !== null) {
+        drawerFilterState.openKey = null;
+        renderDrawerFilters();
+      }
+    }
   });
 
   if (map) {
