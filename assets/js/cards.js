@@ -173,7 +173,10 @@ function buildFilterOptions() {
 
 function getFilterButtonText(key) {
   const count = state.selected[key].size;
+  const total = state.options[key].length;
+
   if (count === 0) return "全部";
+  if (count === total) return "已全选";
   if (count === 1) return [...state.selected[key]][0];
   return `已选 ${count} 项`;
 }
@@ -196,6 +199,11 @@ function renderFilterBlock(meta) {
         </button>
 
         <div class="multi-select-panel">
+          <div class="multi-select-actions">
+            <button type="button" class="multi-select-action" data-filter-select-all="${meta.key}">全选</button>
+            <button type="button" class="multi-select-action" data-filter-clear="${meta.key}">清空</button>
+          </div>
+
           ${options.map((option) => `
             <label class="multi-select-option">
               <input
@@ -236,6 +244,30 @@ function renderAllFilters() {
         state.selected[key].delete(value);
       }
 
+      currentPage = 1;
+      filterData();
+      renderAllFilters();
+      render();
+    });
+  });
+
+  document.querySelectorAll("[data-filter-select-all]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const key = btn.getAttribute("data-filter-select-all");
+      state.selected[key] = new Set(state.options[key]);
+      currentPage = 1;
+      filterData();
+      renderAllFilters();
+      render();
+    });
+  });
+
+  document.querySelectorAll("[data-filter-clear]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const key = btn.getAttribute("data-filter-clear");
+      state.selected[key].clear();
       currentPage = 1;
       filterData();
       renderAllFilters();
