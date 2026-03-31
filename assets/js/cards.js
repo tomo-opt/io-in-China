@@ -233,6 +233,7 @@ function bindListSortEvents() {
       }
 
       currentPage = 1;
+      filterData();
       render();
     });
   });
@@ -650,36 +651,44 @@ function renderListView(rows) {
         <div class="list-table-header">
           <div class="list-col list-col-cn">
             <span class="list-head-label">中文名</span>
-            ${getSortIndicator("cn", "asc")}
+            ${getSortIndicator("cn")}
           </div>
 
           <div class="list-col list-col-en">
             <span class="list-head-label">英文名</span>
-            ${getSortIndicator("en", "asc")}
+            ${getSortIndicator("en")}
           </div>
 
           <div class="list-col list-col-attr">
             <span class="list-head-label">属性</span>
-            ${getSortIndicator("attr", "asc")}
+            ${getSortIndicator("attr")}
           </div>
 
           <div class="list-col list-col-cate">
             <span class="list-head-label">行动领域</span>
-            ${getSortIndicator("cate", "asc")}
+            ${getSortIndicator("cate")}
           </div>
 
           <div class="list-col list-col-loc">
             <span class="list-head-label">所在地</span>
-            ${getSortIndicator("loc", "asc")}
+            ${getSortIndicator("loc")}
           </div>
 
           <div class="list-col list-col-year">
             <span class="list-head-label">成立年份</span>
-            ${getSortIndicator("year", "asc")}
+            ${getSortIndicator("year")}
           </div>
 
           <div class="list-col list-col-site">
             <span class="list-head-label">官网</span>
+          </div>
+
+          <div class="list-col list-col-wechat">
+            <span class="list-head-label">微信公众号</span>
+          </div>
+
+          <div class="list-col list-col-linkedin">
+            <span class="list-head-label">LinkedIn</span>
           </div>
         </div>
 
@@ -701,6 +710,14 @@ function renderListView(rows) {
     line.innerHTML = `
       <div class="list-col list-col-cn">
         <div class="list-name-cn">${escapeHtml(item.cn || "未命名机构")}</div>
+
+        <details class="list-inline-details">
+          <summary>展开查看机构介绍与参考资料</summary>
+          <div class="list-inline-expand">
+            <div><strong>机构介绍：</strong>${escapeHtml(item.intro || "暂无")}</div>
+            <div style="margin-top: 6px;"><strong>参考资料：</strong>${escapeHtml(item.refs || "暂无")}</div>
+          </div>
+        </details>
       </div>
 
       <div class="list-col list-col-en">
@@ -727,6 +744,14 @@ function renderListView(rows) {
 
       <div class="list-col list-col-site">
         ${formatLink(item.website)}
+      </div>
+
+      <div class="list-col list-col-wechat">
+        ${escapeHtml(item.wechat || "暂无")}
+      </div>
+
+      <div class="list-col list-col-linkedin">
+        ${formatLink(item.linkedin)}
       </div>
     `;
     body.appendChild(line);
