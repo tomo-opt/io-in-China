@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>中国国际组织索引</title>
+    <link rel="stylesheet" href="assets/css/styles.css" />
+  </head>
+  <body>
+    <header class="top-nav">
+      <div class="top-nav-left">
+        <a class="brand brand-link" href="index.html">中国国际组织索引</a>
+      </div>
+
+      <div class="top-nav-right">
+        <nav>
+          <a href="index.html">地图总览</a>
+          <a class="active" href="cards.html">机构列表</a>
+          <a href="guide.html">使用说明</a>
+        </nav>
+
+        <a class="nav-logo-link" href="index.html" aria-label="网站 Logo">
+          <img
+            src="assets/images/logo.png"
+            alt="中国国际组织索引 Logo"
+            class="nav-logo"
+          />
+        </a>
+      </div>
+    </header>
+
+    <main class="cards-db-page">
+      <div class="cards-db-layout">
+        <aside class="cards-db-sidebar">
+          <section class="cards-total-hero" aria-label="机构总数概览">
+            <div class="cards-total-hero-label">机构总数</div>
+            <div id="totalCountHero" class="cards-total-hero-number">--</div>
+            <div class="cards-total-hero-sub">随数据库内容实时更新</div>
+          </section>
+
+          <section class="sidebar-card">
+            <div class="sidebar-card-title">关键词检索</div>
+            <div class="search-row search-row-sidebar">
+              <input
+                id="searchInput"
+                type="text"
+                placeholder="检索机构名、城市、属性、行动领域、官网等"
+              />
+            </div>
+            <div class="sidebar-search-tip">支持任意字段模糊检索</div>
+          </section>
+
+          <section class="sidebar-card">
+            <div class="sidebar-card-title">条件筛选</div>
+
+            <div id="filterAttr" class="filter-slot"></div>
+            <div id="filterCategory" class="filter-slot"></div>
+            <div id="filterYear" class="filter-slot"></div>
+            <div id="filterCity" class="filter-slot"></div>
+
+            <button id="resetBtn" type="button" class="sidebar-reset-btn">重置全部条件</button>
+          </section>
+        </aside>
+
+        <section class="cards-db-main">
+          <div class="cards-db-header">
+            <div>
+              <h1>机构列表</h1>
+              <p class="cards-page-desc">
+                按中文名称拼音序展示全部机构，支持关键词检索、多条件筛选、分页浏览，以及卡片视图与列表视图切换。
+              </p>
+            </div>
+          </div>
+
+          <div class="cards-db-toolbar">
+            <div id="cardsSummary" class="cards-summary"></div>
+
+            <div class="cards-db-toolbar-right">
+              <div class="view-toggle" role="tablist" aria-label="视图切换">
+                <button id="cardViewBtn" type="button" class="view-btn active">卡片视图</button>
+                <button id="listViewBtn" type="button" class="view-btn">列表视图</button>
+              </div>
+
+              <label class="page-size-wrap">
+                每页显示
+                <select id="pageSizeSelect">
+                  <option value="20">20</option>
+                  <option value="50">50</option>
+                </select>
+                条
+              </label>
+            </div>
+          </div>
+
+          <div id="activeFilterChips" class="active-filter-chips"></div>
+
+          <div id="allCards" class="cards-results cards-grid"></div>
+
+          <div id="pagination" class="pagination pagination-pro"></div>
+        </section>
+      </div>
+    </main>
+
+    <footer class="site-footer-fixed">
+      <div class="site-footer-inner">
+        <span>联系我们：</span>
+        <a href="mailto:renopt9@gmail.com">renopt9@gmail.com</a>
+      </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="assets/js/cards.js"></script>
+  </body>
+</html>

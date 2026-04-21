@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>中国国际组织索引</title>
+    <link rel="stylesheet" href="assets/css/styles.css" />
+  </head>
+  <body>
+    <header class="top-nav">
+      <div class="top-nav-left">
+        <a class="brand brand-link" href="index.html">中国国际组织索引</a>
+      </div>
+
+      <div class="top-nav-right">
+        <nav>
+          <a class="active" href="index.html">地图总览</a>
+          <a href="cards.html">机构列表</a>
+          <a href="guide.html">使用说明</a>
+        </nav>
+
+        <a class="nav-logo-link" href="index.html" aria-label="网站 Logo">
+          <img
+            src="assets/images/logo.png"
+            alt="中国国际组织索引 Logo"
+            class="nav-logo"
+          />
+        </a>
+      </div>
+    </header>
+
+    <main class="page-map">
+      <section class="search-panel" aria-label="搜索与筛选">
+        <div class="sidebar-card-title">关键词检索</div>
+        <div class="search-row">
+          <input
+            id="searchInput"
+            type="text"
+            placeholder="检索机构名、城市、属性、行动领域、官网等"
+          />
+          <button id="resetBtn" type="button">重置</button>
+        </div>
+
+        <div class="sidebar-search-tip">支持任意字段模糊检索</div>
+
+        <div class="search-panel-divider"></div>
+
+        <div class="sidebar-card-title">条件筛选</div>
+        <div class="filters filters-multiselect">
+          <div id="mapFilterAttr" class="filter-slot"></div>
+          <div id="mapFilterCategory" class="filter-slot"></div>
+          <div id="mapFilterYear" class="filter-slot"></div>
+          <div id="mapFilterCity" class="filter-slot"></div>
+        </div>
+
+        <div class="tag-hint">可用筛选变量：属性 / 行动领域 / 成立年份 / 所在城市；支持多选。</div>
+        <div id="searchResults" class="search-results hidden"></div>
+      </section>
+
+      <section class="map-wrapper">
+        <div id="mapImageStage" class="map-image-stage">
+          <img id="chinaMapImg" src="assets/maps/china-standard.png" alt="中华人民共和国标准地图底图" />
+          <div id="cityLayer" class="city-layer"></div>
+        </div>
+        <div class="map-note">图注：地图来源为中华人民共和国标准地图。当前版本暂未纳入位于香港特别行政区、澳门特别行政区和台湾省的机构。</div>
+      </section>
+
+      <aside id="drawer" class="drawer">
+        <div class="drawer-header">
+          <h2 id="drawerTitle">点击地图城市查看机构</h2>
+          <button id="drawerClose" type="button">关闭</button>
+        </div>
+        <div id="cardsContainer" class="cards-container"></div>
+      </aside>
+    </main>
+
+    <footer class="site-footer-fixed">
+      <div class="site-footer-inner">
+        <span>联系我们：</span>
+        <a href="mailto:renopt9@gmail.com">renopt9@gmail.com</a>
+      </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+    <script src="assets/js/app.js"></script>
+  </body>
+</html>
