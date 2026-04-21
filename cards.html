@@ -3,16 +3,30 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>机构卡片库 - 在华国际组织百科</title>
+    <title>中国国际组织索引</title>
     <link rel="stylesheet" href="assets/css/styles.css" />
   </head>
   <body>
     <header class="top-nav">
-      <div class="brand">IO in China</div>
-      <nav>
-        <a href="index.html">地图总览</a>
-        <a class="active" href="cards.html">机构卡片库</a>
-      </nav>
+      <div class="top-nav-left">
+        <a class="brand brand-link" href="index.html">中国国际组织索引</a>
+      </div>
+
+      <div class="top-nav-right">
+        <nav>
+          <a href="index.html">地图总览</a>
+          <a class="active" href="cards.html">机构列表</a>
+          <a href="guide.html">使用说明</a>
+        </nav>
+
+        <a class="nav-logo-link" href="index.html" aria-label="网站 Logo">
+          <img
+            src="assets/images/logo.png"
+            alt="中国国际组织索引 Logo"
+            class="nav-logo"
+          />
+        </a>
+      </div>
     </header>
 
     <main class="cards-db-page">
@@ -51,9 +65,9 @@
         <section class="cards-db-main">
           <div class="cards-db-header">
             <div>
-              <h1>机构卡片库</h1>
+              <h1>机构列表</h1>
               <p class="cards-page-desc">
-                按中文名称拼音序展示全部机构，支持关键词检索、多条件筛选、分页浏览，以及卡片 / 列表双视图切换。
+                按中文名称拼音序展示全部机构，支持关键词检索、多条件筛选、分页浏览，以及卡片视图与列表视图切换。
               </p>
             </div>
           </div>
@@ -86,6 +100,13 @@
         </section>
       </div>
     </main>
+
+    <footer class="site-footer-fixed">
+      <div class="site-footer-inner">
+        <span>联系我们：</span>
+        <a href="mailto:renopt9@gmail.com">renopt9@gmail.com</a>
+      </div>
+    </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="assets/js/cards.js"></script>
