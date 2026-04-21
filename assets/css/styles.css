@@ -8,6 +8,7 @@
   --border: #d7dfeb;
 
   --nav-height: clamp(52px, 6vh, 64px);
+  --footer-height: 48px;
   --panel-gap: clamp(10px, 1.6vw, 16px);
   --panel-radius: 14px;
   --search-width: clamp(300px, 42vw, 760px);
@@ -27,6 +28,7 @@ body {
   font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;
   color: var(--text);
   background: var(--bg);
+  padding-bottom: calc(var(--footer-height) + 12px);
 }
 
 .top-nav {
@@ -40,6 +42,42 @@ body {
   position: sticky;
   top: 0;
   z-index: 20;
+}
+
+.top-nav-left,
+.top-nav-right {
+  display: flex;
+  align-items: center;
+}
+
+.top-nav-right {
+  gap: 16px;
+}
+
+.brand-link {
+  color: #fff;
+  text-decoration: none;
+}
+
+.brand-link:hover {
+  opacity: 0.95;
+}
+
+.nav-logo-link {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.nav-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .top-nav nav {
@@ -70,7 +108,7 @@ body {
 }
 
 .page-map {
-  height: calc(100svh - var(--nav-height));
+  height: calc(100svh - var(--nav-height) - var(--footer-height));
   min-height: 560px;
   position: relative;
   overflow: hidden;
@@ -377,7 +415,7 @@ body.calibration-mode .map-image-stage {
 @media (max-width: 768px) {
   .page-map {
     min-height: 0;
-    height: calc(100svh - var(--nav-height));
+    height: calc(100svh - var(--nav-height) - var(--footer-height));
   }
 
   .top-nav {
@@ -1493,5 +1531,179 @@ body.calibration-mode .map-image-stage {
   .filters-multiselect-drawer .multi-select-option-text,
   .drawer-filter-shell .multi-select-option-text {
     font-size: 12px;
+  }
+}
+
+/* =========================
+   全站固定底部联系栏
+   ========================= */
+
+.site-footer-fixed {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--footer-height);
+  background: var(--nav);
+  color: #d8e6ff;
+  z-index: 25;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.site-footer-inner {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 16px;
+  font-size: 14px;
+  text-align: center;
+}
+
+.site-footer-inner a {
+  color: #fff;
+  text-decoration: none;
+}
+
+.site-footer-inner a:hover {
+  text-decoration: underline;
+}
+
+/* =========================
+   guide.html 使用说明页
+   ========================= */
+
+.guide-page {
+  padding: 20px;
+}
+
+.guide-shell {
+  max-width: 1100px;
+  margin: 0 auto;
+  background: rgba(255,255,255,.88);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: 0 10px 28px rgba(0,0,0,.08);
+  padding: 28px;
+}
+
+.guide-header h1 {
+  margin: 0 0 12px;
+  font-size: clamp(28px, 3vw, 42px);
+  color: #0f1f3d;
+}
+
+.guide-lead {
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.guide-section {
+  margin-top: 28px;
+}
+
+.guide-section h2 {
+  margin: 0 0 12px;
+  font-size: 22px;
+  color: #10213f;
+}
+
+.guide-section h3 {
+  margin: 0 0 10px;
+  font-size: 17px;
+  color: #10213f;
+}
+
+.guide-section p {
+  margin: 0 0 12px;
+  line-height: 1.8;
+  color: #334155;
+}
+
+.guide-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.guide-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 8px 20px rgba(15, 31, 61, 0.05);
+}
+
+.guide-list {
+  margin: 0;
+  padding-left: 20px;
+  color: #334155;
+  line-height: 1.9;
+}
+
+.guide-table-wrap {
+  overflow-x: auto;
+}
+
+.guide-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.guide-table th,
+.guide-table td {
+  border-bottom: 1px solid #e9eef5;
+  padding: 12px 14px;
+  text-align: left;
+  vertical-align: top;
+  line-height: 1.7;
+  font-size: 14px;
+}
+
+.guide-table th {
+  background: #f6f9fd;
+  color: #10213f;
+}
+
+.guide-table tr:last-child td {
+  border-bottom: 0;
+}
+
+@media (max-width: 768px) {
+  .top-nav {
+    gap: 10px;
+  }
+
+  .top-nav-right {
+    gap: 10px;
+  }
+
+  .nav-logo-link {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+  }
+
+  .guide-page {
+    padding: 10px;
+  }
+
+  .guide-shell {
+    padding: 18px 14px;
+  }
+
+  .guide-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .site-footer-inner {
+    font-size: 13px;
   }
 }
