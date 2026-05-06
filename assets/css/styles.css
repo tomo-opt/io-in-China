@@ -943,7 +943,7 @@ body.calibration-mode .map-image-stage {
     minmax(140px, 0.9fr)
     minmax(110px, 0.7fr)
     minmax(250px, 1.55fr)
-    minmax(180px, 1.05fr)
+    minmax(180px, 1.05fr);
   gap: 16px;
   align-items: start;
 }
