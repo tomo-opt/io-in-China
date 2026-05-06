@@ -929,7 +929,7 @@ body.calibration-mode .map-image-stage {
   overflow: hidden;
   background: #fff;
   box-shadow: 0 8px 20px rgba(15, 31, 61, 0.05);
-  min-width: 1860px;
+  min-width: 1620px;
 }
 
 .list-table-header,
@@ -944,7 +944,6 @@ body.calibration-mode .map-image-stage {
     minmax(110px, 0.7fr)
     minmax(250px, 1.55fr)
     minmax(180px, 1.05fr)
-    minmax(230px, 1.25fr);
   gap: 16px;
   align-items: start;
 }
@@ -1222,7 +1221,7 @@ body.calibration-mode .map-image-stage {
   }
 
   .list-table {
-    min-width: 1720px;
+    min-width: 1500px;
   }
 
   .list-table-header,
@@ -1294,7 +1293,7 @@ body.calibration-mode .map-image-stage {
   }
 
   .list-table {
-    min-width: 1660px;
+    min-width: 1460px;
   }
 
   .list-table-header,
