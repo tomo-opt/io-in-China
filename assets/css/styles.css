@@ -1234,8 +1234,7 @@ body.calibration-mode .map-image-stage {
       minmax(130px, 0.9fr)
       minmax(100px, 0.65fr)
       minmax(230px, 1.45fr)
-      minmax(170px, 1fr)
-      minmax(210px, 1.15fr);
+      minmax(170px, 1fr);
   }
 }
 
