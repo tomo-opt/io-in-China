@@ -97,7 +97,7 @@ function formatLink(url) {
 function getCardData(row) {
   return {
     cn: getField(row, ["中文名", "机构中文名", "name_zh"]),
-    en: getField(row, ["英文名", "机构英文名", "name_en"]),
+    en: getField(row, ["外文名", "机构外文名", "name_en"]),
     attr: getField(row, ["机构属性", "attribute"]),
     cate: getField(row, ["行动领域", "第一细分类", "一级分类", "category_level_1"]),
     year: getField(row, ["设立年份", "year_founded", "founded_year"]),
