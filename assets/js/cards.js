@@ -277,102 +277,25 @@ function setupListScrollbars() {
   window.addEventListener("resize", syncWidths, { passive: true });
 }
 
-function parseCsvTextFallback(text) {
-  const rows = [];
-  let row = [];
-  let cell = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    const next = text[i + 1];
-
-    if (ch === '"') {
-      if (inQuotes && next === '"') {
-        cell += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-      continue;
-    }
-
-    if (ch === "," && !inQuotes) {
-      row.push(cell);
-      cell = "";
-      continue;
-    }
-
-    if ((ch === "\n" || ch === "\r") && !inQuotes) {
-      if (ch === "\r" && next === "\n") i++;
-      row.push(cell);
-      rows.push(row);
-      row = [];
-      cell = "";
-      continue;
-    }
-
-    cell += ch;
-  }
-
-  if (cell.length > 0 || row.length > 0) {
-    row.push(cell);
-    rows.push(row);
-  }
-
-  const nonEmptyRows = rows.filter((r) => r.some((v) => String(v).trim() !== ""));
-  if (!nonEmptyRows.length) {
-    return { data: [], errors: [{ message: "CSV is empty after parsing." }] };
-  }
-
-  const headers = nonEmptyRows[0].map((h) => String(h).replace(/^\uFEFF/, "").trim());
-  const data = nonEmptyRows.slice(1).map((r) => {
-    const obj = {};
-    headers.forEach((h, idx) => {
-      obj[h] = r[idx] !== undefined ? String(r[idx]).trim() : "";
-    });
-    return obj;
-  });
-
-  return { data, errors: [] };
-}
-
-async function parseCsv(path) {
+async function fetchPublicData(path) {
   const url = new URL(path, window.location.href).href;
 
   const res = await fetch(url, {
     cache: "no-store",
-    credentials: "same-origin",
+    credentials: "same-origin"
   });
 
   if (!res.ok) {
     throw new Error(`HTTP ${res.status} while fetching ${url}`);
   }
 
-  let text = await res.text();
+  const data = await res.json();
 
-  if (!text || !text.trim()) {
-    throw new Error(`CSV text is empty: ${url}`);
+  if (!Array.isArray(data)) {
+    throw new Error(`JSON 格式错误：${url}`);
   }
 
-  text = text.replace(/^\uFEFF/, "");
-  text = text.replace(/[\u200B-\u200D\u2060]/g, "");
-
-  if (typeof Papa !== "undefined" && typeof Papa.parse === "function") {
-    return new Promise((resolve, reject) => {
-      Papa.parse(text, {
-        header: true,
-        skipEmptyLines: true,
-        complete: resolve,
-        error: (err) => {
-          reject(new Error(`Papa parse failed for ${url}: ${err?.message || err}`));
-        }
-      });
-    });
-  }
-
-  console.warn("Papa is not available; using fallback CSV parser.");
-  return parseCsvTextFallback(text);
+  return data;
 }
 
 function buildFilterOptions() {
@@ -946,32 +869,32 @@ function bindEvents() {
 }
 
 async function loadData() {
-  for (const path of CSV_PATHS) {
-    try {
-      const res = await parseCsv(path);
-      if (res?.data?.length) {
-        rawData = sortByChineseName(res.data);
-        buildFilterOptions();
-        filteredData = [...rawData];
-        renderAllFilters();
-        bindEvents();
-        render();
-        return;
-      }
-    } catch (err) {
-      console.warn(`CSV 加载失败：${path}`, err);
-    }
-  }
+  try {
+    const data = await fetchPublicData(DATA_PATH);
 
-  root.className = "cards-results cards-grid";
-  root.innerHTML = `
-    <div class="cards-empty">
-      数据文件加载失败。请检查 data/io_orgs.csv 是否存在，并确认 GitHub Pages 可直接访问该文件。
-    </div>
-  `;
-  summaryEl.innerHTML = "";
-  paginationEl.innerHTML = "";
-  if (totalCountHeroEl) totalCountHeroEl.textContent = "--";
+    if (!data.length) {
+      throw new Error("公开 JSON 数据为空");
+    }
+
+    rawData = sortByChineseName(data);
+    buildFilterOptions();
+    filteredData = [...rawData];
+    renderAllFilters();
+    bindEvents();
+    render();
+  } catch (err) {
+    console.warn("公开 JSON 加载失败：", err);
+
+    root.className = "cards-results cards-grid";
+    root.innerHTML = `
+      <div class="cards-empty">
+        数据文件加载失败。请检查 assets/data/public/orgs_public.json 是否存在且格式正确。
+      </div>
+    `;
+    summaryEl.innerHTML = "";
+    paginationEl.innerHTML = "";
+    if (totalCountHeroEl) totalCountHeroEl.textContent = "--";
+  }
 }
 
 loadData();
