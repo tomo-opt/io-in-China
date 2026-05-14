@@ -1,1 +1,4 @@
-
+private_data/
+data/io_orgs.csv
+data/test
+node_modules/
